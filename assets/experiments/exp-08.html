@@ -1,0 +1,1440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Music Studio</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        parchment: '#F9F6F0',
+                        cream: '#F2EBD9',
+                        walnut: '#2C1D11',
+                        walnutLight: '#4A3525',
+                        terracotta: '#C85A32',
+                        terracottaDark: '#9E3E1C',
+                        sage: '#7A8B7B',
+                        sageLight: '#A3B1A4',
+                        gold: '#D4AF37',
+                        goldLight: '#F3E5AB',
+                        brass: '#E5A93C'
+                    },
+                    fontFamily: {
+                        serif: ['Playfair Display', 'serif'],
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #2C1D11;
+            color: #F9F6F0;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            overflow-x: hidden;
+        }
+
+        .studio-bg {
+            background: radial-gradient(circle at 50% 30%, #4A3525 0%, #2C1D11 75%, #180F08 100%);
+        }
+
+        .gold-glow {
+            box-shadow: 0 0 25px rgba(212, 175, 55, 0.25);
+        }
+
+        .terracotta-glow {
+            box-shadow: 0 0 20px rgba(200, 90, 50, 0.3);
+        }
+
+        .wood-card {
+            background: linear-gradient(145deg, #3D2817, #28190E);
+            border: 1px solid rgba(212, 175, 55, 0.15);
+        }
+
+        .wood-card:hover {
+            border-color: rgba(212, 175, 55, 0.4);
+            transform: translateY(-4px);
+        }
+
+        /* String animation canvas overlay */
+        .string-vibrate {
+            animation: stringShake 0.15s ease-in-out infinite alternate;
+        }
+
+        @keyframes stringShake {
+            0% { transform: translateY(-1px); }
+            100% { transform: translateY(1px); }
+        }
+
+        /* Key stroke visual feedback */
+        .piano-key-white {
+            transition: transform 0.05s ease, background-color 0.05s ease, box-shadow 0.05s ease;
+            box-shadow: 0 6px 0 #CBD5E1, 0 10px 15px rgba(0,0,0,0.3);
+        }
+        .piano-key-white.active {
+            transform: translateY(5px);
+            box-shadow: 0 1px 0 #CBD5E1, 0 4px 6px rgba(0,0,0,0.4);
+            background-color: #F3E5AB !important;
+        }
+
+        .piano-key-black {
+            transition: transform 0.05s ease, background-color 0.05s ease, box-shadow 0.05s ease;
+            box-shadow: 0 4px 0 #000, 0 8px 12px rgba(0,0,0,0.5);
+        }
+        .piano-key-black.active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 #000, 0 2px 4px rgba(0,0,0,0.6);
+            background-color: #C85A32 !important;
+        }
+
+        /* Drum visual bounce */
+        .drum-pad {
+            transition: transform 0.05s ease, filter 0.05s ease;
+        }
+        .drum-pad:active, .drum-pad.active {
+            transform: scale(0.96);
+            filter: brightness(1.25);
+        }
+
+        /* Floating Note Animation */
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(0.8); }
+            100% { opacity: 0; transform: translateY(-60px) scale(1.3); }
+        }
+
+        .floating-note {
+            position: absolute;
+            pointer-events: none;
+            animation: floatUp 0.9s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+            color: #D4AF37;
+            font-weight: bold;
+            font-size: 1.25rem;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+            z-index: 50;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #2C1D11;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4A3525;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #C85A32;
+        }
+    </style>
+</head>
+<body class="min-h-screen studio-bg flex flex-col justify-between selection:bg-terracotta selection:text-white">
+
+    <!-- Top Header & Audio Activation Banner -->
+    <header class="w-full px-4 lg:px-8 py-4 border-b border-gold/10 bg-walnut/80 backdrop-blur-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="text-center md:text-left cursor-pointer" onclick="switchView('studio')">
+                <h1 class="font-serif text-2xl lg:text-3xl font-bold tracking-wide text-parchment flex items-center gap-2 justify-center md:justify-start">
+                    <span class="text-gold">✦</span> PLAY THE WORLD OF MUSIC <span class="text-gold">✦</span>
+                </h1>
+                <p class="text-xs lg:text-sm text-sageLight tracking-widest uppercase mt-0.5">Choose an instrument. Play it. Create something.</p>
+                <p class="text-[11px] text-gold/90 mt-1 font-semibold flex items-center justify-center md:justify-start gap-1">
+                    <span>✨</span> فكرة وتنفيذ: تمرا الشباطات | Idea & Execution by Tamara Al-Shabatat
+                </p>
+            </div>
+
+            <!-- Global Controls & Jam Recorder UI -->
+            <div class="flex items-center gap-3 bg-walnutLight/60 p-2 rounded-2xl border border-gold/20 shadow-inner">
+                <!-- Recording Bar Controls -->
+                <button id="recBtn" onclick="toggleRecord()" class="px-3 py-1.5 rounded-xl bg-terracotta text-parchment text-xs font-semibold flex items-center gap-1.5 transition-all hover:bg-terracottaDark active:scale-95 shadow-md">
+                    <span id="recDot" class="w-2.5 h-2.5 rounded-full bg-white inline-block"></span>
+                    <span id="recText">REC</span>
+                </button>
+                <button id="playBtn" onclick="playRecording()" class="px-3 py-1.5 rounded-xl bg-sage text-walnut text-xs font-bold flex items-center gap-1.5 transition-all hover:bg-sageLight active:scale-95 shadow-md disabled:opacity-40" disabled>
+                    ▶ PLAY
+                </button>
+                <button id="clearBtn" onclick="clearRecording()" class="px-2.5 py-1.5 rounded-xl bg-walnut/80 text-parchment/70 hover:text-parchment text-xs transition-all hover:bg-red-900/50">
+                    ✕ CLEAR
+                </button>
+                
+                <div class="h-5 w-[1px] bg-gold/20 mx-1"></div>
+
+                <!-- Master Volume Slider -->
+                <div class="flex items-center gap-2 px-1">
+                    <span class="text-xs text-gold">🔊</span>
+                    <input type="range" id="masterVolume" min="0" max="1" step="0.05" value="0.75" oninput="setMasterVolume(this.value)" class="w-16 md:w-20 accent-gold cursor-pointer">
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Audio Start Overlay (To abide by browser AudioContext policies) -->
+    <div id="audioInitBanner" class="bg-terracotta/90 text-parchment py-2 px-4 text-center text-xs md:text-sm flex items-center justify-center gap-3 shadow-lg cursor-pointer hover:bg-terracotta transition-colors" onclick="initAudioEngine()">
+        <span>🎵 Click or tap anywhere in the studio to enable high-fidelity audio output.</span>
+        <span class="bg-parchment/20 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider">Enable Audio</span>
+    </div>
+
+    <!-- MAIN CONTAINER (Studio Room or Stage) -->
+    <main class="max-w-7xl w-full mx-auto p-4 lg:p-8 flex-grow flex flex-col justify-center">
+
+        <!-- STUDIO ROOM VIEW (Instrument Selection Gallery) -->
+        <div id="studioView" class="space-y-8 py-4 transition-all duration-500">
+            <div class="text-center max-w-2xl mx-auto space-y-2">
+                <span class="text-gold text-xs tracking-widest uppercase px-3 py-1 bg-gold/10 rounded-full border border-gold/20">Acoustic & Digital Studio</span>
+                <h2 class="font-serif text-3xl md:text-4xl text-parchment font-semibold">Select an Instrument to Stage</h2>
+                <p class="text-sm text-sageLight">Step into the room. Tap any instrument below to bring it onto the main performance stage with instant low-latency touch & keyboard feedback.</p>
+                <div class="pt-1 text-xs text-gold/80 italic font-serif">
+                    حقوق الفكرة والتصميم والتنفيذ محفوظة لـ <strong class="text-gold font-bold">تمرا الشباطات</strong>
+                </div>
+            </div>
+
+            <!-- Instrument Cards Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-4">
+                
+                <!-- Piano Card -->
+                <div onclick="openInstrument('piano')" class="wood-card rounded-2xl p-6 cursor-pointer group flex flex-col justify-between transition-all duration-300">
+                    <div class="aspect-video rounded-xl bg-gradient-to-b from-walnut to-black/80 flex items-center justify-center border border-gold/10 p-4 group-hover:border-gold/40 relative overflow-hidden">
+                        <div class="text-5xl group-hover:scale-110 transition-transform duration-300">🎹</div>
+                        <div class="absolute bottom-2 right-2 text-[10px] bg-terracotta/20 text-terracotta px-2 py-0.5 rounded border border-terracotta/30">Polyphonic</div>
+                    </div>
+                    <div class="mt-4">
+                        <h3 class="font-serif text-xl font-bold text-parchment group-hover:text-gold transition-colors">Grand Piano</h3>
+                        <p class="text-xs text-sageLight mt-1">Full 2-octave responsive keyboard with sustain support & key shortcuts.</p>
+                    </div>
+                </div>
+
+                <!-- Acoustic Guitar Card -->
+                <div onclick="openInstrument('guitar')" class="wood-card rounded-2xl p-6 cursor-pointer group flex flex-col justify-between transition-all duration-300">
+                    <div class="aspect-video rounded-xl bg-gradient-to-b from-walnut to-black/80 flex items-center justify-center border border-gold/10 p-4 group-hover:border-gold/40 relative overflow-hidden">
+                        <div class="text-5xl group-hover:scale-110 transition-transform duration-300">🎸</div>
+                        <div class="absolute bottom-2 right-2 text-[10px] bg-gold/20 text-gold px-2 py-0.5 rounded border border-gold/30">6 Strings</div>
+                    </div>
+                    <div class="mt-4">
+                        <h3 class="font-serif text-xl font-bold text-parchment group-hover:text-gold transition-colors">Acoustic Guitar</h3>
+                        <p class="text-xs text-sageLight mt-1">Interactive steel strings with drag strumming & real-time resonance physics.</p>
+                    </div>
+                </div>
+
+                <!-- Drum Kit Card -->
+                <div onclick="openInstrument('drums')" class="wood-card rounded-2xl p-6 cursor-pointer group flex flex-col justify-between transition-all duration-300">
+                    <div class="aspect-video rounded-xl bg-gradient-to-b from-walnut to-black/80 flex items-center justify-center border border-gold/10 p-4 group-hover:border-gold/40 relative overflow-hidden">
+                        <div class="text-5xl group-hover:scale-110 transition-transform duration-300">🥁</div>
+                        <div class="absolute bottom-2 right-2 text-[10px] bg-terracotta/20 text-terracotta px-2 py-0.5 rounded border border-terracotta/30">Acoustic Kit</div>
+                    </div>
+                    <div class="mt-4">
+                        <h3 class="font-serif text-xl font-bold text-parchment group-hover:text-gold transition-colors">Studio Drum Kit</h3>
+                        <p class="text-xs text-sageLight mt-1">Dynamic Kick, Snare, Hi-Hats, Toms, and Crash with realistic visual reaction.</p>
+                    </div>
+                </div>
+
+                <!-- Violin Card -->
+                <div onclick="openInstrument('violin')" class="wood-card rounded-2xl p-6 cursor-pointer group flex flex-col justify-between transition-all duration-300">
+                    <div class="aspect-video rounded-xl bg-gradient-to-b from-walnut to-black/80 flex items-center justify-center border border-gold/10 p-4 group-hover:border-gold/40 relative overflow-hidden">
+                        <div class="text-5xl group-hover:scale-110 transition-transform duration-300">🎻</div>
+                        <div class="absolute bottom-2 right-2 text-[10px] bg-sage/20 text-sageLight px-2 py-0.5 rounded border border-sage/30">Orchestral</div>
+                    </div>
+                    <div class="mt-4">
+                        <h3 class="font-serif text-xl font-bold text-parchment group-hover:text-gold transition-colors">Classical Violin</h3>
+                        <p class="text-xs text-sageLight mt-1">Pluck or bow 4 orchestral tuned strings with rich warm vibrato harmonics.</p>
+                    </div>
+                </div>
+
+                <!-- Trumpet Card -->
+                <div onclick="openInstrument('trumpet')" class="wood-card rounded-2xl p-6 cursor-pointer group flex flex-col justify-between transition-all duration-300">
+                    <div class="aspect-video rounded-xl bg-gradient-to-b from-walnut to-black/80 flex items-center justify-center border border-gold/10 p-4 group-hover:border-gold/40 relative overflow-hidden">
+                        <div class="text-5xl group-hover:scale-110 transition-transform duration-300">🎺</div>
+                        <div class="absolute bottom-2 right-2 text-[10px] bg-brass/20 text-brass px-2 py-0.5 rounded border border-brass/30">Brass Valves</div>
+                    </div>
+                    <div class="mt-4">
+                        <h3 class="font-serif text-xl font-bold text-parchment group-hover:text-gold transition-colors">Brass Trumpet</h3>
+                        <p class="text-xs text-sageLight mt-1">Interactive 3-valve combinations controlling rich harmonic brass pitches.</p>
+                    </div>
+                </div>
+
+                <!-- Ukulele Card -->
+                <div onclick="openInstrument('ukulele')" class="wood-card rounded-2xl p-6 cursor-pointer group flex flex-col justify-between transition-all duration-300">
+                    <div class="aspect-video rounded-xl bg-gradient-to-b from-walnut to-black/80 flex items-center justify-center border border-gold/10 p-4 group-hover:border-gold/40 relative overflow-hidden">
+                        <div class="text-5xl group-hover:scale-110 transition-transform duration-300">🪕</div>
+                        <div class="absolute bottom-2 right-2 text-[10px] bg-gold/20 text-gold px-2 py-0.5 rounded border border-gold/30">4 Strings</div>
+                    </div>
+                    <div class="mt-4">
+                        <h3 class="font-serif text-xl font-bold text-parchment group-hover:text-gold transition-colors">Concert Ukulele</h3>
+                        <p class="text-xs text-sageLight mt-1">Bright nylon string acoustics with tap and strum swipe dynamics.</p>
+                    </div>
+                </div>
+
+                <!-- Saxophone Card -->
+                <div onclick="openInstrument('saxophone')" class="wood-card rounded-2xl p-6 cursor-pointer group flex flex-col justify-between transition-all duration-300">
+                    <div class="aspect-video rounded-xl bg-gradient-to-b from-walnut to-black/80 flex items-center justify-center border border-gold/10 p-4 group-hover:border-gold/40 relative overflow-hidden">
+                        <div class="text-5xl group-hover:scale-110 transition-transform duration-300">🎷</div>
+                        <div class="absolute bottom-2 right-2 text-[10px] bg-brass/20 text-brass px-2 py-0.5 rounded border border-brass/30">Woodwind</div>
+                    </div>
+                    <div class="mt-4">
+                        <h3 class="font-serif text-xl font-bold text-parchment group-hover:text-gold transition-colors">Alto Saxophone</h3>
+                        <p class="text-xs text-sageLight mt-1">Expressive brass woodwind tone articulated by key pad combinations.</p>
+                    </div>
+                </div>
+
+                <!-- Quick Jam Mode Banner Box -->
+                <div onclick="switchView('studio')" class="wood-card rounded-2xl p-6 bg-gradient-to-br from-terracotta/20 to-walnut flex flex-col justify-between border-dashed border-terracotta/40">
+                    <div>
+                        <div class="flex items-center gap-2 text-terracotta font-bold text-sm tracking-wider uppercase mb-2">
+                            <span>🎙️</span> Multi-Track Jamming
+                        </div>
+                        <h3 class="font-serif text-xl font-bold text-parchment">Create Your Track</h3>
+                        <p class="text-xs text-sageLight mt-2">Press <strong class="text-terracotta">REC</strong> at top right, play any combination of instruments, and hit <strong class="text-sage">PLAY</strong> to loop your musical jam!</p>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-gold/10 text-xs text-gold flex items-center gap-2">
+                        <span>💡 Tip: Computer keyboard keys are enabled for Piano!</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- MAIN STAGE VIEW (Active Selected Instrument View) -->
+        <div id="stageView" class="hidden flex-col items-center justify-center transition-all duration-500 py-4">
+            
+            <!-- Stage Header & Navigation Bar -->
+            <div class="w-full max-w-4xl flex items-center justify-between mb-6 bg-walnut/90 p-4 rounded-2xl border border-gold/20 shadow-xl">
+                <button onclick="switchView('studio')" class="px-4 py-2 rounded-xl bg-walnutLight hover:bg-gold/20 text-parchment border border-gold/30 text-xs md:text-sm font-semibold flex items-center gap-2 transition-all active:scale-95">
+                    ← Back to Studio Room
+                </button>
+
+                <!-- Currently Played Note Display -->
+                <div class="flex items-center gap-3">
+                    <span class="text-xs uppercase tracking-widest text-sageLight hidden sm:inline">Active Sound:</span>
+                    <div id="activeNoteDisplay" class="px-4 py-1.5 rounded-xl bg-black/60 border border-gold/40 text-gold font-mono font-bold text-base md:text-lg min-w-[120px] text-center shadow-inner">
+                        --
+                    </div>
+                </div>
+            </div>
+
+            <!-- Instrument Interactive Stage Container -->
+            <div id="stageContainer" class="w-full max-w-4xl min-h-[420px] wood-card rounded-3xl p-4 md:p-8 flex flex-col items-center justify-center relative shadow-2xl border border-gold/20 overflow-hidden">
+                <!-- Instrument components rendered here dynamically -->
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Studio Footer -->
+    <footer class="w-full border-t border-gold/20 bg-walnut/95 py-6 px-4 text-center text-xs text-sageLight shadow-lg">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="text-center md:text-left">
+                <span class="text-gold font-serif font-bold text-sm block">Virtual Digital Music Studio</span>
+                <span class="text-[11px] text-sageLight/80">Interactive Web Audio API Synthesis & Multi-Instrument Jam Exhibition</span>
+            </div>
+            
+            <div class="bg-gold/10 border border-gold/30 rounded-2xl px-5 py-2.5 text-center shadow-inner">
+                <span class="text-parchment font-bold block text-xs tracking-wide">© جميع الحقوق محفوظة | All Rights Reserved</span>
+                <span class="text-gold font-extrabold text-sm block mt-0.5">فكرة وتنفيذ: تمرا الشباطات</span>
+                <span class="text-[10px] text-sageLight block mt-0.5">Concept & Development by Tamara Al-Shabatat</span>
+            </div>
+
+            <div class="text-center md:text-right text-gold/80 font-serif text-xs">
+                Crafted with Pure Web Audio API & Modern Interactive Canvas/SVG Graphics
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Global Audio Context Singleton
+        let audioCtx = null;
+        let masterGain = null;
+
+        // Audio Engine Initialization
+        function initAudioEngine() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+                masterGain = audioCtx.createGain();
+                masterGain.gain.setValueAtTime(0.75, audioCtx.currentTime);
+                masterGain.connect(audioCtx.destination);
+                
+                const banner = document.getElementById('audioInitBanner');
+                if (banner) banner.style.display = 'none';
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function setMasterVolume(val) {
+            if (masterGain && audioCtx) {
+                masterGain.gain.setValueAtTime(parseFloat(val), audioCtx.currentTime);
+            }
+        }
+
+        // --- RECORDING & JAM LOOPER ENGINE ---
+        let isRecording = false;
+        let recordedEvents = [];
+        let recordStartTime = 0;
+        let playbackTimeouts = [];
+
+        function toggleRecord() {
+            initAudioEngine();
+            const recBtn = document.getElementById('recBtn');
+            const recText = document.getElementById('recText');
+            const recDot = document.getElementById('recDot');
+            
+            if (!isRecording) {
+                isRecording = true;
+                recordedEvents = [];
+                recordStartTime = performance.now();
+                recBtn.classList.remove('bg-terracotta');
+                recBtn.classList.add('bg-red-600', 'animate-pulse');
+                recText.textContent = 'RECORDING...';
+                recDot.classList.add('bg-white');
+            } else {
+                isRecording = false;
+                recBtn.classList.remove('bg-red-600', 'animate-pulse');
+                recBtn.classList.add('bg-terracotta');
+                recText.textContent = 'REC';
+                
+                const playBtn = document.getElementById('playBtn');
+                if (recordedEvents.length > 0) {
+                    playBtn.disabled = false;
+                }
+            }
+        }
+
+        function recordNote(instrument, note, triggerCallback) {
+            if (isRecording) {
+                const timestamp = performance.now() - recordStartTime;
+                recordedEvents.push({
+                    timestamp,
+                    instrument,
+                    note,
+                    triggerCallback
+                });
+            }
+        }
+
+        function playRecording() {
+            initAudioEngine();
+            stopPlayback();
+
+            if (recordedEvents.length === 0) return;
+
+            const playBtn = document.getElementById('playBtn');
+            playBtn.classList.add('ring-2', 'ring-gold');
+
+            recordedEvents.forEach(evt => {
+                const tid = setTimeout(() => {
+                    if (evt.triggerCallback) {
+                        evt.triggerCallback();
+                    }
+                }, evt.timestamp);
+                playbackTimeouts.push(tid);
+            });
+
+            // Auto reset play button glow at end of loop
+            const maxTime = Math.max(...recordedEvents.map(e => e.timestamp)) + 1000;
+            const endTid = setTimeout(() => {
+                playBtn.classList.remove('ring-2', 'ring-gold');
+            }, maxTime);
+            playbackTimeouts.push(endTid);
+        }
+
+        function stopPlayback() {
+            playbackTimeouts.forEach(id => clearTimeout(id));
+            playbackTimeouts = [];
+            const playBtn = document.getElementById('playBtn');
+            if (playBtn) playBtn.classList.remove('ring-2', 'ring-gold');
+        }
+
+        function clearRecording() {
+            stopPlayback();
+            recordedEvents = [];
+            if (isRecording) toggleRecord();
+            document.getElementById('playBtn').disabled = true;
+            updateNoteDisplay('JAM CLEARED');
+        }
+
+        // --- NOTE DISPLAY HELPER ---
+        function updateNoteDisplay(text) {
+            const disp = document.getElementById('activeNoteDisplay');
+            if (disp) {
+                disp.textContent = text;
+                disp.classList.add('text-parchment');
+                setTimeout(() => disp.classList.remove('text-parchment'), 150);
+            }
+        }
+
+        function createFloatingNote(x, y, text) {
+            const noteEl = document.createElement('div');
+            noteEl.className = 'floating-note';
+            noteEl.textContent = text || '🎵';
+            noteEl.style.left = `${x}px`;
+            noteEl.style.top = `${y}px`;
+            document.body.appendChild(noteEl);
+            setTimeout(() => noteEl.remove(), 900);
+        }
+
+        // ==========================================
+        // SYNTHESIS AUDIO ENGINE (Pure Web Audio API)
+        // ==========================================
+
+        // 1. PIANO SYNTHESIZER
+        function playPianoTone(freq, name) {
+            initAudioEngine();
+            if (!audioCtx) return;
+
+            const now = audioCtx.currentTime;
+            
+            // Primary tone (Triangle + Sine)
+            const osc1 = audioCtx.createOscillator();
+            const osc2 = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc1.type = 'triangle';
+            osc1.frequency.setValueAtTime(freq, now);
+
+            osc2.type = 'sine';
+            osc2.frequency.setValueAtTime(freq * 2, now); // 2nd harmonic
+
+            // Envelope
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(0.6, now + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
+
+            osc1.connect(gain);
+            osc2.connect(gain);
+            gain.connect(masterGain);
+
+            osc1.start(now);
+            osc2.start(now);
+            osc1.stop(now + 1.8);
+            osc2.stop(now + 1.8);
+        }
+
+        // 2. PLUCKED STRING SYNTHESIZER (Guitar / Ukulele / Violin Pluck)
+        function playPluckedStringTone(freq, duration = 2.0, damping = 2000) {
+            initAudioEngine();
+            if (!audioCtx) return;
+
+            const now = audioCtx.currentTime;
+            
+            // Pluck excitation noise burst
+            const bufferSize = audioCtx.sampleRate * 0.02; // 20ms burst
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = Math.random() * 2 - 1;
+            }
+
+            const noise = audioCtx.createBufferSource();
+            noise.buffer = buffer;
+
+            // Tuned Comb / Bandpass Filter simulating string resonance
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.setValueAtTime(freq, now);
+            filter.Q.setValueAtTime(12, now);
+
+            const gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(0.8, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(masterGain);
+
+            noise.start(now);
+        }
+
+        // 3. DRUM SYNTHESIZER
+        function playDrumSound(type) {
+            initAudioEngine();
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+
+            if (type === 'kick') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.frequency.setValueAtTime(140, now);
+                osc.frequency.exponentialRampToValueAtTime(32, now + 0.12);
+
+                gain.gain.setValueAtTime(1.0, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+                osc.connect(gain);
+                gain.connect(masterGain);
+                osc.start(now);
+                osc.stop(now + 0.45);
+
+            } else if (type === 'snare') {
+                // Tone body
+                const osc = audioCtx.createOscillator();
+                const oscGain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.exponentialRampToValueAtTime(80, now + 0.1);
+                oscGain.gain.setValueAtTime(0.5, now);
+                oscGain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc.connect(oscGain);
+                oscGain.connect(masterGain);
+                osc.start(now);
+                osc.stop(now + 0.15);
+
+                // Snare wire noise
+                const bufferSize = audioCtx.sampleRate * 0.2;
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
+                const noiseFilter = audioCtx.createBiquadFilter();
+                noiseFilter.type = 'highpass';
+                noiseFilter.frequency.setValueAtTime(1000, now);
+
+                const noiseGain = audioCtx.createGain();
+                noiseGain.gain.setValueAtTime(0.7, now);
+                noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+
+                noise.connect(noiseFilter);
+                noiseFilter.connect(noiseGain);
+                noiseGain.connect(masterGain);
+                noise.start(now);
+
+            } else if (type === 'hihat') {
+                const bufferSize = audioCtx.sampleRate * 0.08;
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'highpass';
+                filter.frequency.setValueAtTime(7000, now);
+
+                const gain = audioCtx.createGain();
+                gain.gain.setValueAtTime(0.6, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(masterGain);
+                noise.start(now);
+
+            } else if (type === 'crash') {
+                const bufferSize = audioCtx.sampleRate * 1.2;
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.setValueAtTime(5000, now);
+                filter.Q.setValueAtTime(1.5, now);
+
+                const gain = audioCtx.createGain();
+                gain.gain.setValueAtTime(0.8, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(masterGain);
+                noise.start(now);
+
+            } else if (type.startsWith('tom')) {
+                const freqMap = { tom1: 220, tom2: 150, tom3: 100 };
+                const baseFreq = freqMap[type] || 150;
+
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(baseFreq, now);
+                osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.4, now + 0.3);
+
+                gain.gain.setValueAtTime(0.8, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+                osc.connect(gain);
+                gain.connect(masterGain);
+                osc.start(now);
+                osc.stop(now + 0.35);
+            }
+        }
+
+        // 4. BRASS / TRUMPET SYNTHESIZER
+        function playTrumpetTone(freq) {
+            initAudioEngine();
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+
+            const osc = audioCtx.createOscillator();
+            const filter = audioCtx.createBiquadFilter();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(freq, now);
+
+            // Brass envelope filter opening
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(300, now);
+            filter.frequency.exponentialRampToValueAtTime(2400, now + 0.08);
+            filter.frequency.exponentialRampToValueAtTime(1000, now + 0.5);
+
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(0.5, now + 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(masterGain);
+
+            osc.start(now);
+            osc.stop(now + 0.6);
+        }
+
+        // 5. WOODWIND / SAXOPHONE SYNTHESIZER
+        function playSaxTone(freq) {
+            initAudioEngine();
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+
+            const osc = audioCtx.createOscillator();
+            const filter = audioCtx.createBiquadFilter();
+            const gain = audioCtx.createGain();
+
+            // Vibrato LFO
+            const lfo = audioCtx.createOscillator();
+            const lfoGain = audioCtx.createGain();
+            lfo.frequency.setValueAtTime(5.5, now); // 5.5 Hz vibrato
+            lfoGain.gain.setValueAtTime(4, now);
+            lfo.connect(osc.frequency);
+
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(freq, now);
+
+            // Reed body resonance filter
+            filter.type = 'bandpass';
+            filter.frequency.setValueAtTime(1100, now);
+            filter.Q.setValueAtTime(1.8, now);
+
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(0.5, now + 0.06);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+
+            lfo.start(now);
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(masterGain);
+
+            osc.start(now);
+            osc.stop(now + 0.7);
+            lfo.stop(now + 0.7);
+        }
+
+        // 6. VIOLIN SYNTHESIZER
+        function playViolinTone(freq) {
+            initAudioEngine();
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+
+            const osc = audioCtx.createOscillator();
+            const filter = audioCtx.createBiquadFilter();
+            const gain = audioCtx.createGain();
+
+            // Expressive String Vibrato
+            const lfo = audioCtx.createOscillator();
+            const lfoGain = audioCtx.createGain();
+            lfo.frequency.setValueAtTime(6.0, now);
+            lfoGain.gain.setValueAtTime(5, now);
+            lfo.connect(osc.frequency);
+
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(freq, now);
+
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(2200, now);
+
+            // Smooth bow stroke attack
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(0.55, now + 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+
+            lfo.start(now);
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(masterGain);
+
+            osc.start(now);
+            osc.stop(now + 1.2);
+            lfo.stop(now + 1.2);
+        }
+
+
+        // ==========================================
+        // INSTRUMENT VIEW SWITCHING & STAGE MANAGER
+        // ==========================================
+        let currentInstrument = null;
+
+        function switchView(viewName) {
+            const studioView = document.getElementById('studioView');
+            const stageView = document.getElementById('stageView');
+
+            if (viewName === 'studio') {
+                stageView.classList.add('hidden');
+                stageView.classList.remove('flex');
+                studioView.classList.remove('hidden');
+                currentInstrument = null;
+            } else if (viewName === 'stage') {
+                studioView.classList.add('hidden');
+                stageView.classList.remove('hidden');
+                stageView.classList.add('flex');
+            }
+        }
+
+        function openInstrument(key) {
+            initAudioEngine();
+            currentInstrument = key;
+            switchView('stage');
+            const container = document.getElementById('stageContainer');
+            container.innerHTML = '';
+
+            switch (key) {
+                case 'piano':
+                    renderPianoStage(container);
+                    break;
+                case 'guitar':
+                    renderGuitarStage(container);
+                    break;
+                case 'drums':
+                    renderDrumsStage(container);
+                    break;
+                case 'violin':
+                    renderViolinStage(container);
+                    break;
+                case 'trumpet':
+                    renderTrumpetStage(container);
+                    break;
+                case 'ukulele':
+                    renderUkuleleStage(container);
+                    break;
+                case 'saxophone':
+                    renderSaxophoneStage(container);
+                    break;
+            }
+        }
+
+        // ==========================================
+        // 1. PIANO KEYBOARD INTERFACE
+        // ==========================================
+        function renderPianoStage(container) {
+            updateNoteDisplay('GRAND PIANO READY');
+            
+            const pianoKeys = [
+                { note: 'C4', freq: 261.63, key: 'A', isBlack: false },
+                { note: 'C#4', freq: 277.18, key: 'W', isBlack: true },
+                { note: 'D4', freq: 293.66, key: 'S', isBlack: false },
+                { note: 'D#4', freq: 311.13, key: 'E', isBlack: true },
+                { note: 'E4', freq: 329.63, key: 'D', isBlack: false },
+                { note: 'F4', freq: 349.23, key: 'F', isBlack: false },
+                { note: 'F#4', freq: 369.99, key: 'T', isBlack: true },
+                { note: 'G4', freq: 392.00, key: 'G', isBlack: false },
+                { note: 'G#4', freq: 415.30, key: 'Y', isBlack: true },
+                { note: 'A4', freq: 440.00, key: 'H', isBlack: false },
+                { note: 'A#4', freq: 466.16, key: 'U', isBlack: true },
+                { note: 'B4', freq: 493.88, key: 'J', isBlack: false },
+                { note: 'C5', freq: 523.25, key: 'K', isBlack: false },
+                { note: 'C#5', freq: 554.37, key: 'O', isBlack: true },
+                { note: 'D5', freq: 587.33, key: 'L', isBlack: false }
+            ];
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'w-full flex flex-col items-center justify-center space-y-6';
+            wrapper.innerHTML = `
+                <div class="text-center space-y-1">
+                    <h2 class="font-serif text-2xl font-bold text-parchment">Concert Grand Piano</h2>
+                    <p class="text-xs text-sageLight">Play using touch/mouse or computer keyboard keys [A, W, S, E, D, F, T, G...]</p>
+                </div>
+
+                <!-- Keyboard container -->
+                <div id="pianoKeyboard" class="relative flex justify-center bg-walnut p-4 md:p-6 rounded-2xl border-2 border-gold/30 shadow-2xl overflow-x-auto max-w-full">
+                </div>
+            `;
+
+            container.appendChild(wrapper);
+            const kbContainer = document.getElementById('pianoKeyboard');
+
+            // Render white and black key layout
+            pianoKeys.forEach((kData) => {
+                const keyBtn = document.createElement('button');
+                keyBtn.dataset.note = kData.note;
+
+                if (!kData.isBlack) {
+                    keyBtn.className = `piano-key-white relative w-10 sm:w-12 md:w-14 h-44 sm:h-52 bg-parchment text-walnut rounded-b-lg font-bold flex flex-col justify-end items-center pb-3 m-0.5 border border-walnut/20 z-10`;
+                    keyBtn.innerHTML = `
+                        <span class="text-[10px] text-walnut/50">${kData.key}</span>
+                        <span class="text-xs">${kData.note}</span>
+                    `;
+                } else {
+                    keyBtn.className = `piano-key-black absolute w-7 sm:w-8 h-28 sm:h-32 bg-walnut text-parchment rounded-b-md font-bold flex flex-col justify-end items-center pb-2 z-20`;
+                    keyBtn.innerHTML = `
+                        <span class="text-[9px] text-gold/60">${kData.key}</span>
+                        <span class="text-[10px] text-gold">${kData.note}</span>
+                    `;
+                }
+
+                const trigger = (e) => {
+                    if (e) e.preventDefault();
+                    playPianoTone(kData.freq, kData.note);
+                    updateNoteDisplay(`🎹 PIANO: ${kData.note}`);
+                    
+                    if (e && e.clientX) createFloatingNote(e.clientX, e.clientY - 20, kData.note);
+
+                    recordNote('piano', kData.note, () => {
+                        playPianoTone(kData.freq, kData.note);
+                        updateNoteDisplay(`🎹 PIANO: ${kData.note}`);
+                        keyBtn.classList.add('active');
+                        setTimeout(() => keyBtn.classList.remove('active'), 200);
+                    });
+
+                    keyBtn.classList.add('active');
+                    setTimeout(() => keyBtn.classList.remove('active'), 200);
+                };
+
+                keyBtn.addEventListener('mousedown', trigger);
+                keyBtn.addEventListener('touchstart', trigger);
+
+                kbContainer.appendChild(keyBtn);
+            });
+
+            // Adjust black key absolute positions over white keys
+            const whiteKeys = kbContainer.querySelectorAll('.piano-key-white');
+            const blackKeys = kbContainer.querySelectorAll('.piano-key-black');
+
+            // Mapping black key indices relative to white key offsets
+            const blackOffsetMap = [0, 1, 3, 4, 5, 7, 8];
+            blackKeys.forEach((bKey, idx) => {
+                const whiteTargetIdx = blackOffsetMap[idx];
+                if (whiteKeys[whiteTargetIdx]) {
+                    const whiteLeft = whiteKeys[whiteTargetIdx].offsetLeft;
+                    const whiteWidth = whiteKeys[whiteTargetIdx].offsetWidth;
+                    bKey.style.left = `${whiteLeft + whiteWidth - (bKey.offsetWidth / 2)}px`;
+                }
+            });
+
+            // Attach Global Keyboard Listeners for Piano
+            const keyHandler = (e) => {
+                if (currentInstrument !== 'piano') return;
+                const match = pianoKeys.find(k => k.key.toUpperCase() === e.key.toUpperCase());
+                if (match && !e.repeat) {
+                    playPianoTone(match.freq, match.note);
+                    updateNoteDisplay(`🎹 PIANO: ${match.note}`);
+                    recordNote('piano', match.note, () => playPianoTone(match.freq, match.note));
+
+                    const btn = kbContainer.querySelector(`[data-note="${match.note}"]`);
+                    if (btn) {
+                        btn.classList.add('active');
+                        setTimeout(() => btn.classList.remove('active'), 200);
+                    }
+                }
+            };
+            window.removeEventListener('keydown', window._pianoKeyHandler);
+            window._pianoKeyHandler = keyHandler;
+            window.addEventListener('keydown', keyHandler);
+        }
+
+
+        // ==========================================
+        // 2. ACOUSTIC GUITAR INTERFACE
+        // ==========================================
+        function renderGuitarStage(container) {
+            updateNoteDisplay('ACOUSTIC GUITAR READY');
+
+            const guitarStrings = [
+                { note: 'E2', freq: 82.41, thickness: 5, name: '6th (E)' },
+                { note: 'A2', freq: 110.00, thickness: 4, name: '5th (A)' },
+                { note: 'D3', freq: 146.83, thickness: 3.5, name: '4th (D)' },
+                { note: 'G3', freq: 196.00, thickness: 2.8, name: '3rd (G)' },
+                { note: 'B3', freq: 246.94, thickness: 2.2, name: '2nd (B)' },
+                { note: 'E4', freq: 329.63, thickness: 1.6, name: '1st (E)' }
+            ];
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'w-full flex flex-col items-center justify-center space-y-6';
+            wrapper.innerHTML = `
+                <div class="text-center space-y-1">
+                    <h2 class="font-serif text-2xl font-bold text-parchment">6-String Acoustic Guitar</h2>
+                    <p class="text-xs text-sageLight">Tap strings or swipe vertically across all strings to strum!</p>
+                </div>
+
+                <div id="guitarBody" class="w-full max-w-xl bg-gradient-to-r from-walnut to-walnutLight p-6 rounded-3xl border-2 border-gold/30 shadow-2xl relative flex flex-col justify-center space-y-5 my-4 overflow-hidden">
+                    <!-- Rosewood soundhole background graphic -->
+                    <div class="absolute right-12 top-1/2 -translate-y-1/2 w-40 h-40 rounded-full bg-black border-8 border-gold/20 opacity-80 pointer-events-none"></div>
+                </div>
+            `;
+
+            container.appendChild(wrapper);
+            const gBody = document.getElementById('guitarBody');
+
+            guitarStrings.forEach((sData, idx) => {
+                const stringLine = document.createElement('div');
+                stringLine.className = 'relative w-full h-8 flex items-center cursor-pointer group';
+                
+                stringLine.innerHTML = `
+                    <span class="w-16 text-xs text-gold font-mono font-semibold">${sData.name}</span>
+                    <div class="flex-grow relative h-full flex items-center">
+                        <div id="gString_${idx}" class="w-full bg-gradient-to-r from-gold via-parchment to-gold shadow-md rounded-full transition-all duration-75" style="height: ${sData.thickness}px"></div>
+                    </div>
+                    <span class="w-12 text-right text-xs text-sageLight font-mono">${sData.note}</span>
+                `;
+
+                const triggerString = (e) => {
+                    if (e) e.preventDefault();
+                    playPluckedStringTone(sData.freq, 2.2);
+                    updateNoteDisplay(`🎸 GUITAR: ${sData.note}`);
+
+                    if (e && e.clientX) createFloatingNote(e.clientX, e.clientY, sData.note);
+
+                    const strEl = document.getElementById(`gString_${idx}`);
+                    if (strEl) {
+                        strEl.classList.add('string-vibrate', 'bg-terracotta');
+                        setTimeout(() => strEl.classList.remove('string-vibrate', 'bg-terracotta'), 400);
+                    }
+
+                    recordNote('guitar', sData.note, () => {
+                        playPluckedStringTone(sData.freq, 2.2);
+                        updateNoteDisplay(`🎸 GUITAR: ${sData.note}`);
+                        if (strEl) {
+                            strEl.classList.add('string-vibrate', 'bg-terracotta');
+                            setTimeout(() => strEl.classList.remove('string-vibrate', 'bg-terracotta'), 400);
+                        }
+                    });
+                };
+
+                stringLine.addEventListener('mousedown', triggerString);
+                stringLine.addEventListener('mouseenter', (e) => {
+                    if (e.buttons === 1) triggerString(e); // Strum on drag across
+                });
+                stringLine.addEventListener('touchstart', triggerString);
+
+                gBody.appendChild(stringLine);
+            });
+        }
+
+
+        // ==========================================
+        // 3. STUDIO DRUM KIT INTERFACE
+        // ==========================================
+        function renderDrumsStage(container) {
+            updateNoteDisplay('DRUM KIT READY');
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'w-full flex flex-col items-center justify-center space-y-6';
+            wrapper.innerHTML = `
+                <div class="text-center space-y-1">
+                    <h2 class="font-serif text-2xl font-bold text-parchment">Studio Drum Kit</h2>
+                    <p class="text-xs text-sageLight">Tap or click any drum pad or cymbal to trigger acoustic percussion!</p>
+                </div>
+
+                <!-- Drum Kit Layout Grid -->
+                <div class="w-full max-w-2xl grid grid-cols-3 gap-4 md:gap-6 p-4">
+                    <!-- Crash Cymbal -->
+                    <div id="drum_crash" class="drum-pad col-span-1 bg-gradient-to-br from-gold via-brass to-walnut p-4 rounded-full aspect-square border-4 border-gold/60 flex flex-col items-center justify-center cursor-pointer shadow-xl text-walnut font-bold text-xs hover:scale-105 transition-transform">
+                        <span class="text-2xl">📀</span>
+                        <span>CRASH</span>
+                    </div>
+
+                    <!-- Hi-Hat -->
+                    <div id="drum_hihat" class="drum-pad col-span-1 bg-gradient-to-br from-brass via-gold to-walnut p-4 rounded-full aspect-square border-4 border-gold/60 flex flex-col items-center justify-center cursor-pointer shadow-xl text-walnut font-bold text-xs hover:scale-105 transition-transform">
+                        <span class="text-2xl">📀</span>
+                        <span>HI-HAT</span>
+                    </div>
+
+                    <!-- High Tom -->
+                    <div id="drum_tom1" class="drum-pad col-span-1 bg-gradient-to-br from-walnutLight to-walnut p-4 rounded-full aspect-square border-4 border-terracotta flex flex-col items-center justify-center cursor-pointer shadow-xl text-parchment font-bold text-xs hover:scale-105 transition-transform">
+                        <span class="text-xl">🥁</span>
+                        <span>HIGH TOM</span>
+                    </div>
+
+                    <!-- Mid Tom -->
+                    <div id="drum_tom2" class="drum-pad col-span-1 bg-gradient-to-br from-walnutLight to-walnut p-4 rounded-full aspect-square border-4 border-terracotta flex flex-col items-center justify-center cursor-pointer shadow-xl text-parchment font-bold text-xs hover:scale-105 transition-transform">
+                        <span class="text-xl">🥁</span>
+                        <span>MID TOM</span>
+                    </div>
+
+                    <!-- Snare Drum -->
+                    <div id="drum_snare" class="drum-pad col-span-1 bg-gradient-to-br from-parchment via-cream to-slate-300 p-4 rounded-full aspect-square border-4 border-terracotta flex flex-col items-center justify-center cursor-pointer shadow-xl text-walnut font-bold text-xs hover:scale-105 transition-transform">
+                        <span class="text-2xl">🥁</span>
+                        <span>SNARE</span>
+                    </div>
+
+                    <!-- Floor Tom -->
+                    <div id="drum_tom3" class="drum-pad col-span-1 bg-gradient-to-br from-walnutLight to-walnut p-4 rounded-full aspect-square border-4 border-terracotta flex flex-col items-center justify-center cursor-pointer shadow-xl text-parchment font-bold text-xs hover:scale-105 transition-transform">
+                        <span class="text-xl">🥁</span>
+                        <span>FLOOR TOM</span>
+                    </div>
+
+                    <!-- Kick Drum (Center Bottom) -->
+                    <div id="drum_kick" class="drum-pad col-span-3 bg-gradient-to-b from-walnut to-black p-6 rounded-3xl border-4 border-gold/40 flex flex-col items-center justify-center cursor-pointer shadow-2xl text-gold font-bold text-sm hover:scale-[1.02] transition-transform">
+                        <span class="text-3xl">🥁</span>
+                        <span>BASS KICK DRUM</span>
+                    </div>
+                </div>
+            `;
+
+            container.appendChild(wrapper);
+
+            const drumsMap = [
+                { id: 'drum_crash', type: 'crash', name: 'CRASH CYMBAL' },
+                { id: 'drum_hihat', type: 'hihat', name: 'HI-HAT' },
+                { id: 'drum_tom1', type: 'tom1', name: 'HIGH TOM' },
+                { id: 'drum_tom2', type: 'tom2', name: 'MID TOM' },
+                { id: 'drum_snare', type: 'snare', name: 'SNARE DRUM' },
+                { id: 'drum_tom3', type: 'tom3', name: 'FLOOR TOM' },
+                { id: 'drum_kick', type: 'kick', name: 'KICK DRUM' }
+            ];
+
+            drumsMap.forEach(d => {
+                const el = document.getElementById(d.id);
+                if (el) {
+                    const trigger = (e) => {
+                        if (e) e.preventDefault();
+                        playDrumSound(d.type);
+                        updateNoteDisplay(`🥁 DRUMS: ${d.name}`);
+                        
+                        if (e && e.clientX) createFloatingNote(e.clientX, e.clientY, d.name);
+
+                        el.classList.add('active');
+                        setTimeout(() => el.classList.remove('active'), 150);
+
+                        recordNote('drums', d.type, () => {
+                            playDrumSound(d.type);
+                            updateNoteDisplay(`🥁 DRUMS: ${d.name}`);
+                            el.classList.add('active');
+                            setTimeout(() => el.classList.remove('active'), 150);
+                        });
+                    };
+
+                    el.addEventListener('mousedown', trigger);
+                    el.addEventListener('touchstart', trigger);
+                }
+            });
+        }
+
+
+        // ==========================================
+        // 4. CLASSICAL VIOLIN INTERFACE
+        // ==========================================
+        function renderViolinStage(container) {
+            updateNoteDisplay('VIOLIN READY');
+
+            const violinStrings = [
+                { note: 'G3', freq: 196.00, thickness: 4, name: 'G String (Lowest)' },
+                { note: 'D4', freq: 293.66, thickness: 3, name: 'D String' },
+                { note: 'A4', freq: 440.00, thickness: 2.2, name: 'A String (Concert Pitch)' },
+                { note: 'E5', freq: 659.25, thickness: 1.5, name: 'E String (Bright High)' }
+            ];
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'w-full flex flex-col items-center justify-center space-y-6';
+            wrapper.innerHTML = `
+                <div class="text-center space-y-1">
+                    <h2 class="font-serif text-2xl font-bold text-parchment">Classical Violin</h2>
+                    <p class="text-xs text-sageLight">Pluck orchestral strings with rich wooden vibrato resonance!</p>
+                </div>
+
+                <div id="violinBody" class="w-full max-w-lg bg-gradient-to-b from-walnut to-terracotta/30 p-8 rounded-full border-2 border-gold/30 shadow-2xl relative flex flex-col items-center space-y-6 my-4 overflow-hidden">
+                    <!-- F-Holes visual accents -->
+                    <div class="absolute left-6 top-1/2 -translate-y-1/2 text-4xl text-gold/20 font-serif pointer-events-none">∫</div>
+                    <div class="absolute right-6 top-1/2 -translate-y-1/2 text-4xl text-gold/20 font-serif pointer-events-none">∫</div>
+                </div>
+            `;
+
+            container.appendChild(wrapper);
+            const vBody = document.getElementById('violinBody');
+
+            violinStrings.forEach((sData, idx) => {
+                const sLine = document.createElement('div');
+                sLine.className = 'relative w-full h-10 flex items-center cursor-pointer group';
+                sLine.innerHTML = `
+                    <span class="w-24 text-xs text-gold font-mono font-semibold">${sData.name}</span>
+                    <div class="flex-grow relative h-full flex items-center">
+                        <div id="vString_${idx}" class="w-full bg-gradient-to-r from-silver via-parchment to-silver shadow-md rounded-full transition-all duration-75" style="height: ${sData.thickness}px"></div>
+                    </div>
+                    <span class="w-12 text-right text-xs text-sageLight font-mono">${sData.note}</span>
+                `;
+
+                const trigger = (e) => {
+                    if (e) e.preventDefault();
+                    playViolinTone(sData.freq);
+                    updateNoteDisplay(`🎻 VIOLIN: ${sData.note}`);
+
+                    if (e && e.clientX) createFloatingNote(e.clientX, e.clientY, sData.note);
+
+                    const strEl = document.getElementById(`vString_${idx}`);
+                    if (strEl) {
+                        strEl.classList.add('string-vibrate', 'bg-gold');
+                        setTimeout(() => strEl.classList.remove('string-vibrate', 'bg-gold'), 400);
+                    }
+
+                    recordNote('violin', sData.note, () => {
+                        playViolinTone(sData.freq);
+                        updateNoteDisplay(`🎻 VIOLIN: ${sData.note}`);
+                        if (strEl) {
+                            strEl.classList.add('string-vibrate', 'bg-gold');
+                            setTimeout(() => strEl.classList.remove('string-vibrate', 'bg-gold'), 400);
+                        }
+                    });
+                };
+
+                sLine.addEventListener('mousedown', trigger);
+                sLine.addEventListener('touchstart', trigger);
+                vBody.appendChild(sLine);
+            });
+        }
+
+
+        // ==========================================
+        // 5. BRASS TRUMPET INTERFACE
+        // ==========================================
+        function renderTrumpetStage(container) {
+            updateNoteDisplay('TRUMPET READY');
+
+            // Interactive valves state
+            let valveState = [false, false, false];
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'w-full flex flex-col items-center justify-center space-y-6';
+            wrapper.innerHTML = `
+                <div class="text-center space-y-1">
+                    <h2 class="font-serif text-2xl font-bold text-parchment">Brass Trumpet</h2>
+                    <p class="text-xs text-sageLight">Press valve combinations and tap "BLOW / PLAY" to sound different brass pitches!</p>
+                </div>
+
+                <div class="w-full max-w-xl bg-gradient-to-r from-brass via-gold to-walnut p-8 rounded-3xl border-2 border-gold shadow-2xl flex flex-col items-center space-y-6">
+                    
+                    <!-- Trumpet Valves Visual Controls -->
+                    <div class="flex items-center justify-center gap-6 my-2">
+                        <button id="valve1" class="w-14 h-24 bg-gradient-to-b from-parchment to-slate-400 rounded-t-xl border-2 border-walnut font-bold text-walnut shadow-lg active:translate-y-2 transition-transform">
+                            VALVE 1
+                        </button>
+                        <button id="valve2" class="w-14 h-24 bg-gradient-to-b from-parchment to-slate-400 rounded-t-xl border-2 border-walnut font-bold text-walnut shadow-lg active:translate-y-2 transition-transform">
+                            VALVE 2
+                        </button>
+                        <button id="valve3" class="w-14 h-24 bg-gradient-to-b from-parchment to-slate-400 rounded-t-xl border-2 border-walnut font-bold text-walnut shadow-lg active:translate-y-2 transition-transform">
+                            VALVE 3
+                        </button>
+                    </div>
+
+                    <!-- Blow / Play Trigger -->
+                    <button id="blowBtn" class="w-full py-4 rounded-2xl bg-terracotta hover:bg-terracottaDark text-parchment font-bold text-lg border-2 border-gold/40 shadow-xl active:scale-95 transition-all">
+                        🎺 BLOW TRUMPET TONE
+                    </button>
+                </div>
+            `;
+
+            container.appendChild(wrapper);
+
+            const v1 = document.getElementById('valve1');
+            const v2 = document.getElementById('valve2');
+            const v3 = document.getElementById('valve3');
+            const blowBtn = document.getElementById('blowBtn');
+
+            const updateValveStyles = () => {
+                v1.style.transform = valveState[0] ? 'translateY(12px)' : 'translateY(0)';
+                v1.style.backgroundColor = valveState[0] ? '#C85A32' : '';
+                v2.style.transform = valveState[1] ? 'translateY(12px)' : 'translateY(0)';
+                v2.style.backgroundColor = valveState[1] ? '#C85A32' : '';
+                v3.style.transform = valveState[2] ? 'translateY(12px)' : 'translateY(0)';
+                v3.style.backgroundColor = valveState[2] ? '#C85A32' : '';
+            };
+
+            v1.addEventListener('click', () => { valveState[0] = !valveState[0]; updateValveStyles(); });
+            v2.addEventListener('click', () => { valveState[1] = !valveState[1]; updateValveStyles(); });
+            v3.addEventListener('click', () => { valveState[2] = !valveState[2]; updateValveStyles(); });
+
+            const playTrumpet = (e) => {
+                if (e) e.preventDefault();
+                // Map 8 valve state permutations to brass harmonic pitches
+                const baseFreq = 349.23; // F4
+                let semitones = 0;
+                if (valveState[1]) semitones -= 1;
+                if (valveState[0]) semitones -= 2;
+                if (valveState[2]) semitones -= 3;
+
+                const targetFreq = baseFreq * Math.pow(2, semitones / 12);
+                const noteName = `F4 (${semitones >= 0 ? '+' : ''}${semitones} st)`;
+
+                playTrumpetTone(targetFreq);
+                updateNoteDisplay(`🎺 TRUMPET: ${noteName}`);
+
+                if (e && e.clientX) createFloatingNote(e.clientX, e.clientY, noteName);
+
+                recordNote('trumpet', { targetFreq, noteName }, () => {
+                    playTrumpetTone(targetFreq);
+                    updateNoteDisplay(`🎺 TRUMPET: ${noteName}`);
+                });
+            };
+
+            blowBtn.addEventListener('mousedown', playTrumpet);
+            blowBtn.addEventListener('touchstart', playTrumpet);
+        }
+
+
+        // ==========================================
+        // 6. CONCERT UKULELE INTERFACE
+        // ==========================================
+        function renderUkuleleStage(container) {
+            updateNoteDisplay('UKULELE READY');
+
+            const ukeStrings = [
+                { note: 'G4', freq: 392.00, thickness: 2.5, name: '4th (High G)' },
+                { note: 'C4', freq: 261.63, thickness: 3.2, name: '3rd (C)' },
+                { note: 'E4', freq: 329.63, thickness: 2.2, name: '2nd (E)' },
+                { note: 'A4', freq: 440.00, thickness: 1.8, name: '1st (A)' }
+            ];
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'w-full flex flex-col items-center justify-center space-y-6';
+            wrapper.innerHTML = `
+                <div class="text-center space-y-1">
+                    <h2 class="font-serif text-2xl font-bold text-parchment">Concert Ukulele</h2>
+                    <p class="text-xs text-sageLight">Tap or strum bright nylon strings!</p>
+                </div>
+
+                <div id="ukeBody" class="w-full max-w-md bg-gradient-to-r from-terracotta to-walnut p-6 rounded-3xl border-2 border-gold/40 shadow-2xl flex flex-col space-y-5 my-4 overflow-hidden relative">
+                    <div class="absolute right-8 top-1/2 -translate-y-1/2 w-28 h-28 rounded-full bg-black border-4 border-gold/30 opacity-70 pointer-events-none"></div>
+                </div>
+            `;
+
+            container.appendChild(wrapper);
+            const uBody = document.getElementById('ukeBody');
+
+            ukeStrings.forEach((sData, idx) => {
+                const sLine = document.createElement('div');
+                sLine.className = 'relative w-full h-10 flex items-center cursor-pointer group';
+                sLine.innerHTML = `
+                    <span class="w-24 text-xs text-gold font-mono font-semibold">${sData.name}</span>
+                    <div class="flex-grow relative h-full flex items-center">
+                        <div id="uString_${idx}" class="w-full bg-parchment/90 shadow-md rounded-full transition-all duration-75" style="height: ${sData.thickness}px"></div>
+                    </div>
+                    <span class="w-12 text-right text-xs text-sageLight font-mono">${sData.note}</span>
+                `;
+
+                const trigger = (e) => {
+                    if (e) e.preventDefault();
+                    playPluckedStringTone(sData.freq, 1.5, 3000);
+                    updateNoteDisplay(`🪕 UKULELE: ${sData.note}`);
+
+                    if (e && e.clientX) createFloatingNote(e.clientX, e.clientY, sData.note);
+
+                    const strEl = document.getElementById(`uString_${idx}`);
+                    if (strEl) {
+                        strEl.classList.add('string-vibrate', 'bg-gold');
+                        setTimeout(() => strEl.classList.remove('string-vibrate', 'bg-gold'), 350);
+                    }
+
+                    recordNote('ukulele', sData.note, () => {
+                        playPluckedStringTone(sData.freq, 1.5, 3000);
+                        updateNoteDisplay(`🪕 UKULELE: ${sData.note}`);
+                        if (strEl) {
+                            strEl.classList.add('string-vibrate', 'bg-gold');
+                            setTimeout(() => strEl.classList.remove('string-vibrate', 'bg-gold'), 350);
+                        }
+                    });
+                };
+
+                sLine.addEventListener('mousedown', trigger);
+                sLine.addEventListener('mouseenter', (e) => { if (e.buttons === 1) trigger(e); });
+                sLine.addEventListener('touchstart', trigger);
+                uBody.appendChild(sLine);
+            });
+        }
+
+
+        // ==========================================
+        // 7. ALTO SAXOPHONE INTERFACE
+        // ==========================================
+        function renderSaxophoneStage(container) {
+            updateNoteDisplay('SAXOPHONE READY');
+
+            const saxPads = [
+                { note: 'Bb3', freq: 233.08, key: 'Pad 1 (Low)' },
+                { note: 'D4', freq: 293.66, key: 'Pad 2' },
+                { note: 'F4', freq: 349.23, key: 'Pad 3' },
+                { note: 'G4', freq: 392.00, key: 'Pad 4' },
+                { note: 'A4', freq: 440.00, key: 'Pad 5' },
+                { note: 'C5', freq: 523.25, key: 'Pad 6 (High)' }
+            ];
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'w-full flex flex-col items-center justify-center space-y-6';
+            wrapper.innerHTML = `
+                <div class="text-center space-y-1">
+                    <h2 class="font-serif text-2xl font-bold text-parchment">Alto Saxophone</h2>
+                    <p class="text-xs text-sageLight">Press woodwind key pads to articulate warm jazz tone notes!</p>
+                </div>
+
+                <div class="w-full max-w-lg bg-gradient-to-b from-brass via-gold to-walnut p-6 rounded-3xl border-2 border-gold shadow-2xl grid grid-cols-2 gap-4 my-2">
+                </div>
+            `;
+
+            container.appendChild(wrapper);
+            const grid = wrapper.querySelector('.grid');
+
+            saxPads.forEach(pad => {
+                const padBtn = document.createElement('button');
+                padBtn.className = 'p-5 rounded-2xl bg-walnut/80 border-2 border-gold/40 text-gold font-bold flex flex-col items-center justify-center space-y-1 hover:bg-gold/20 active:scale-95 transition-all shadow-lg';
+                padBtn.innerHTML = `
+                    <span class="text-xs text-sageLight">${pad.key}</span>
+                    <span class="text-xl font-mono">${pad.note}</span>
+                `;
+
+                const trigger = (e) => {
+                    if (e) e.preventDefault();
+                    playSaxTone(pad.freq);
+                    updateNoteDisplay(`🎷 SAXOPHONE: ${pad.note}`);
+
+                    if (e && e.clientX) createFloatingNote(e.clientX, e.clientY, pad.note);
+
+                    padBtn.classList.add('bg-terracotta', 'text-parchment');
+                    setTimeout(() => padBtn.classList.remove('bg-terracotta', 'text-parchment'), 300);
+
+                    recordNote('saxophone', pad.note, () => {
+                        playSaxTone(pad.freq);
+                        updateNoteDisplay(`🎷 SAXOPHONE: ${pad.note}`);
+                        padBtn.classList.add('bg-terracotta', 'text-parchment');
+                        setTimeout(() => padBtn.classList.remove('bg-terracotta', 'text-parchment'), 300);
+                    });
+                };
+
+                padBtn.addEventListener('mousedown', trigger);
+                padBtn.addEventListener('touchstart', trigger);
+                grid.appendChild(padBtn);
+            });
+        }
+
+        // On Window Load initialization
+        window.onload = function() {
+            // Attach global listener for audio activation
+            document.body.addEventListener('click', initAudioEngine, { once: true });
+            document.body.addEventListener('touchstart', initAudioEngine, { once: true });
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,3085 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tamara Alshbat — Interactive 3D Book Portfolio</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Cairo:wght@500;700;800;900&family=Courier+Prime:wght@400;700&family=Tajawal:wght@500;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<style>
+/* =========================================================
+   TOKENS
+========================================================= */
+:root{
+  --book-w: 980px;
+  --book-h: 620px;
+
+  --paper-1:#ffffff;
+  --paper-2:#f6f1e3;
+
+  --ink:#05080f;
+  --ink-soft:#1e293b;
+  --ink-mute:#475569;
+
+  --navy:#0b2545;
+  --navy-2:#13315c;
+  --royal:#1d4ed8;
+  --royal-bright:#3b82f6;
+  --emerald:#059669;
+  --amber:#d97706;
+  --rose:#be123c;
+  --violet:#6d28d9;
+
+  --grad-hero: linear-gradient(135deg,#0b2545 0%,#13315c 40%,#1d4ed8 100%);
+  --grad-gold: linear-gradient(135deg,#d97706,#be123c);
+  --grad-cool: linear-gradient(135deg,#0891b2,#6d28d9);
+
+  --shadow-page:
+    0 30px 60px -20px rgba(0,0,0,.65),
+    0 4px 12px rgba(0,0,0,.25),
+    inset 0 0 60px rgba(180,140,80,.04);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:"Tajawal",sans-serif;
+  font-size:15px;
+  font-weight:700;
+  color:var(--ink);
+  background:#050810;
+  overflow:hidden;
+  line-height:1.65;
+}
+
+/* =========================================================
+   BACKGROUND
+========================================================= */
+.bg-stage{
+  position:fixed;inset:0;z-index:-3;
+  background:
+    radial-gradient(ellipse at 12% 15%,rgba(37,99,235,.35),transparent 48%),
+    radial-gradient(ellipse at 88% 20%,rgba(124,58,237,.32),transparent 48%),
+    radial-gradient(ellipse at 20% 88%,rgba(16,185,129,.28),transparent 48%),
+    radial-gradient(ellipse at 82% 92%,rgba(245,158,11,.26),transparent 48%),
+    linear-gradient(180deg,#050810 0%,#0a1020 45%,#050810 100%);
+}
+.bg-mesh{
+  position:fixed;inset:0;z-index:-2;pointer-events:none;
+  background-image:
+    radial-gradient(rgba(255,255,255,.06) 1px,transparent 1px),
+    radial-gradient(rgba(255,255,255,.03) 1px,transparent 1px);
+  background-size:44px 44px,22px 22px;
+  background-position:0 0,11px 11px;
+  opacity:.9;
+}
+.bg-glow{
+  position:fixed;width:560px;height:560px;border-radius:50%;
+  filter:blur(140px);z-index:-2;pointer-events:none;
+  animation:floatGlow 14s ease-in-out infinite;
+}
+.glow-1{top:-140px;left:-140px;background:rgba(37,99,235,.7)}
+.glow-2{bottom:-180px;right:-140px;background:rgba(124,58,237,.65);animation-delay:-5s}
+.glow-3{top:40%;left:50%;transform:translate(-50%,-50%);background:rgba(16,185,129,.35);animation-delay:-9s;width:420px;height:420px}
+@keyframes floatGlow{
+  0%,100%{transform:translate(0,0) scale(1)}
+  50%{transform:translate(40px,-30px) scale(1.12)}
+}
+.particles{position:fixed;inset:0;pointer-events:none;z-index:-1;overflow:hidden}
+.particles span{position:absolute;border-radius:50%;animation:rise linear infinite}
+@keyframes rise{
+  from{transform:translateY(105vh) scale(.4);opacity:0}
+  10%{opacity:1}
+  to{transform:translateY(-10vh) scale(1);opacity:0}
+}
+
+/* =========================================================
+   STAGE
+========================================================= */
+.stage{
+  position:fixed;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  perspective:2600px;
+  perspective-origin:50% 50%;
+  padding:0 130px;
+  touch-action:none;
+}
+.scene{
+  width:var(--book-w);
+  height:var(--book-h);
+  position:relative;
+  transform-style:preserve-3d;
+  transition:transform .35s cubic-bezier(.2,.8,.2,1);
+  will-change:transform;
+}
+.scene::after{
+  content:"";position:absolute;
+  left:8%;right:8%;bottom:-34px;height:52px;
+  background:radial-gradient(ellipse at center, rgba(0,0,0,.85), transparent 72%);
+  filter:blur(16px);
+  transform:rotateX(72deg);
+  border-radius:50%;
+}
+.book{width:100%;height:100%;position:relative;transform-style:preserve-3d}
+
+/* =========================================================
+   WIRES
+========================================================= */
+.wires{
+  position:absolute;
+  right:-38px;top:8px;bottom:8px;
+  width:44px;z-index:9999;
+  pointer-events:none;
+  filter:drop-shadow(2px 3px 5px rgba(0,0,0,.6));
+}
+.wires svg{width:100%;height:100%;overflow:visible}
+
+/* =========================================================
+   PAPER STACK
+========================================================= */
+.paper-stack{
+  position:absolute;
+  right:-8px;top:5px;bottom:5px;
+  width:16px;z-index:1;
+  pointer-events:none;
+  display:flex;flex-direction:column;
+}
+.paper-stack i{
+  flex:1;
+  background:linear-gradient(90deg,#ffffff 0%,#f0e9d6 60%,#d6cba8 100%);
+  border-top:1px solid rgba(120,100,60,.5);
+  border-bottom:1px solid rgba(120,100,60,.5);
+  border-right:1px solid rgba(120,100,60,.55);
+  border-radius:0 6px 6px 0;
+  box-shadow:inset -2px 0 4px rgba(0,0,0,.1);
+}
+.paper-stack i:nth-child(even){background:linear-gradient(90deg,#fbf7ec,#e8dfc8 60%,#cdc199 100%)}
+
+/* =========================================================
+   PAGE
+========================================================= */
+.book-page{
+  position:absolute;inset:0;
+  transform-style:preserve-3d;
+  transform-origin: right center;
+  transform: rotateY(0deg);
+  transition: transform 1.05s cubic-bezier(.72,.02,.18,1);
+  will-change:transform;
+  border-radius:16px 6px 6px 16px;
+}
+.book-page.flipped{ transform: rotateY(-180deg); }
+
+.face{
+  position:absolute;inset:0;
+  border-radius:16px 6px 6px 16px;
+  overflow:hidden;
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
+  background:
+    linear-gradient(-90deg,rgba(11,37,69,.10) 0%, transparent 4%, transparent 95%, rgba(11,37,69,.07) 100%),
+    linear-gradient(180deg,var(--paper-1),var(--paper-2));
+  box-shadow:var(--shadow-page);
+  border:1px solid rgba(140,120,80,.4);
+}
+.face.back{
+  transform: rotateY(180deg);
+  background:
+    linear-gradient(90deg,rgba(11,37,69,.10) 0%, transparent 5%),
+    linear-gradient(180deg,#fbf7ec,#f2ebd9);
+}
+.face::before{
+  content:"";
+  position:absolute;top:0;right:0;
+  width:26px;height:100%;
+  background:linear-gradient(270deg, rgba(0,0,0,.24), transparent);
+  border-radius:0 4px 4px 0;
+  z-index:5;
+  pointer-events:none;
+}
+
+.paper-lines{
+  position:absolute;inset:0;pointer-events:none;opacity:.55;
+  background:repeating-linear-gradient(
+    to bottom,
+    transparent 0 32px,
+    rgba(29,78,216,.18) 32px 33px
+  );
+}
+
+/* =========================================================
+   CONTENT
+========================================================= */
+.page-content{
+  position:relative;width:100%;height:100%;
+  padding:34px 46px;
+  overflow:hidden;
+}
+.page-title{
+  font-family:"Cairo",sans-serif;
+  font-size:34px;font-weight:900;
+  color:var(--navy);
+  letter-spacing:-.8px;line-height:1.12;
+  text-shadow: 0 1px 0 rgba(255,255,255,.4);
+}
+.page-subtitle{
+  font-family:"Courier Prime",monospace;
+  font-size:13.5px;font-weight:700;
+  color:var(--royal);
+  margin-top:4px;letter-spacing:.4px;
+}
+.section-line{
+  height:4px;
+  background:linear-gradient(to left,var(--royal) 0%,var(--amber) 45%,var(--rose) 75%,transparent 100%);
+  margin:12px 0 20px;
+  border-radius:3px;
+  box-shadow: 0 2px 8px rgba(29,78,216,.25);
+  position:relative;
+}
+.section-line::after{
+  content:"";position:absolute;left:0;top:-2px;
+  width:12px;height:8px;border-radius:50%;
+  background:var(--rose);
+  box-shadow:0 0 14px var(--rose);
+}
+
+/* =========================================================
+   COVER
+========================================================= */
+.cover{
+  height:100%;padding:44px 54px;position:relative;
+  background:
+    radial-gradient(circle at 85% 15%,rgba(37,99,235,.18),transparent 32%),
+    radial-gradient(circle at 15% 85%,rgba(16,185,129,.14),transparent 32%),
+    radial-gradient(circle at 50% 50%,rgba(245,158,11,.08),transparent 42%),
+    linear-gradient(180deg,#fffdf6,#f2ebd9);
+}
+.cover-grid{
+  height:100%;display:grid;
+  grid-template-columns:1fr 290px;gap:26px;
+  align-items:center;position:relative;z-index:3;
+}
+.cover-eyebrow{
+  display:inline-flex;align-items:center;gap:8px;
+  font-family:"Courier Prime",monospace;
+  font-size:12.5px;font-weight:700;
+  padding:6px 14px;border-radius:20px;
+  background:rgba(29,78,216,.14);
+  color:var(--navy);
+  border:1.5px solid rgba(29,78,216,.35);
+  letter-spacing:1.5px;
+}
+.cover-eyebrow .dot{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--emerald);
+  box-shadow:0 0 12px var(--emerald);
+  animation:pulseDot 1.6s infinite;
+}
+@keyframes pulseDot{50%{opacity:.4;transform:scale(.7)}}
+.cover-name-en{
+  font-family:"Alex Brush",cursive;
+  font-size:100px;line-height:.86;
+  background:var(--grad-hero);
+  -webkit-background-clip:text;background-clip:text;
+  color:transparent;
+  transform:rotate(-3deg);
+  margin:10px 0 0;
+  filter: drop-shadow(0 4px 8px rgba(11,37,69,.18));
+}
+.cover-name-ar{
+  font-family:"Cairo",sans-serif;
+  font-size:44px;font-weight:900;
+  color:var(--navy);
+  letter-spacing:-1.2px;margin-top:4px;
+}
+.cover-name-ar span{
+  background:var(--grad-gold);
+  -webkit-background-clip:text;background-clip:text;
+  color:transparent;
+}
+.photo-zone{
+  width:142px;height:142px;margin-top:16px;
+  position:relative;
+  display:flex;align-items:center;justify-content:center;
+}
+.photo-ring{
+  position:absolute;inset:-4px;border-radius:50%;
+  background:conic-gradient(from 0deg,var(--royal),var(--emerald),var(--amber),var(--rose),var(--violet),var(--royal));
+  animation:spinRing 8s linear infinite;
+}
+@keyframes spinRing{to{transform:rotate(360deg)}}
+.photo-inner{
+  position:relative;z-index:2;
+  width:100%;height:100%;border-radius:50%;
+  background:#fff;padding:5px;
+  box-shadow:0 12px 30px rgba(0,0,0,.28), inset 0 0 20px rgba(29,78,216,.18);
+}
+.photo-inner img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;}
+.photo-badge{
+  position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);
+  z-index:5;background:#fff;
+  border:1.5px dashed var(--amber);
+  padding:4px 14px;border-radius:20px;
+  font-family:"Courier Prime",monospace;
+  font-size:10.5px;font-weight:700;
+  color:var(--navy);letter-spacing:1px;white-space:nowrap;
+  box-shadow:0 6px 15px rgba(11,37,69,.18);
+}
+.cover-role{
+  display:inline-flex;align-items:center;gap:9px;
+  padding:10px 17px;border-radius:10px;
+  background:linear-gradient(135deg,rgba(29,78,216,.14),rgba(109,40,217,.10));
+  border:1.5px solid rgba(29,78,216,.35);
+  font-size:14.5px;font-weight:900;
+  color:var(--navy);margin-top:14px;
+}
+.cover-role i{color:var(--royal)}
+.cover-desc{
+  max-width:520px;margin-top:12px;
+  font-size:15px;line-height:1.9;
+  color:var(--ink-soft);font-weight:600;
+}
+.tech-tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:16px}
+.tech-tag{
+  font-family:"Courier Prime",monospace;
+  font-size:12px;font-weight:700;
+  padding:6px 12px;border-radius:6px;
+  background:rgba(255,255,255,.85);
+  border:1.5px solid rgba(29,78,216,.35);
+  color:var(--navy);
+  transition:all .25s ease;cursor:default;
+}
+.tech-tag:hover{
+  background:var(--navy);color:#fff;
+  transform:translateY(-2px);
+  box-shadow:0 6px 14px rgba(0,0,0,.3);
+}
+.pc-zone{
+  height:100%;display:flex;align-items:center;justify-content:center;
+  position:relative;
+}
+.pc-zone::before{
+  content:"";position:absolute;width:230px;height:230px;border-radius:50%;
+  border:1.5px dashed rgba(29,78,216,.4);
+  animation:spinRing 30s linear infinite reverse;
+}
+.pc-zone::after{
+  content:"";position:absolute;width:175px;height:175px;border-radius:50%;
+  border:1px solid rgba(217,119,6,.5);
+  animation:spinRing 20s linear infinite;
+}
+.retro-pc{
+  transform:rotate(2deg);
+  animation:floatPC 5s ease-in-out infinite;
+  filter:drop-shadow(0 25px 30px rgba(0,0,0,.35));
+}
+@keyframes floatPC{
+  0%,100%{transform:rotate(2deg) translateY(0)}
+  50%{transform:rotate(2deg) translateY(-10px)}
+}
+.pc-screen{
+  background:linear-gradient(180deg,#0a3a5c,#0b2545);
+  color:#7dd3fc;
+  font-family:"Courier Prime",monospace;
+  font-size:11.5px;font-weight:700;
+  padding:11px;border-radius:6px;
+  border:2px solid #cbd5e1;
+  box-shadow:inset 0 0 22px rgba(125,211,252,.45);
+  text-align:left;direction:ltr;line-height:1.55;
+  height:88px;position:relative;overflow:hidden;
+}
+.pc-cursor{
+  display:inline-block;width:7px;height:12px;
+  background:#7dd3fc;
+  animation:blink 1s step-end infinite;
+  vertical-align:middle;
+}
+@keyframes blink{50%{opacity:0}}
+.cover-stamp{
+  position:absolute;left:48px;bottom:34px;
+  width:92px;height:92px;
+  border:2.5px dashed var(--amber);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  text-align:center;
+  font-family:"Courier Prime",monospace;
+  font-size:10.5px;font-weight:700;
+  color:var(--navy);transform:rotate(-14deg);
+  opacity:.9;letter-spacing:1px;line-height:1.5;
+  background:rgba(255,255,255,.55);
+}
+.code-deco{
+  position:absolute;
+  font-family:"Courier Prime",monospace;
+  font-size:11.5px;font-weight:700;
+  color:rgba(29,78,216,.4);
+  line-height:1.6;pointer-events:none;
+}
+.code-1{top:26px;right:32px}
+.code-2{bottom:28px;left:46px}
+
+/* =========================================================
+   ABOUT
+========================================================= */
+.about-layout{
+  display:grid;grid-template-columns:1.35fr .65fr;
+  gap:24px;height:calc(100% - 90px);
+}
+.glass-note{
+  position:relative;padding:22px;
+  background:linear-gradient(135deg,rgba(255,255,255,.98),rgba(255,255,255,.85));
+  border:1.5px solid rgba(140,120,80,.4);
+  border-radius:12px;
+  box-shadow:0 14px 30px rgba(0,0,0,.12);
+}
+.glass-note::before{
+  content:"";position:absolute;top:-9px;right:34px;
+  width:80px;height:20px;
+  background:linear-gradient(135deg,rgba(217,119,6,.7),rgba(190,18,60,.55));
+  transform:rotate(-3deg);border-radius:2px;
+  box-shadow:0 3px 8px rgba(217,119,6,.35);
+}
+.about-text{font-size:15.5px;line-height:1.95;color:var(--ink-soft);font-weight:600}
+.about-text strong{color:var(--navy);font-weight:900}
+.mini-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:18px}
+.mini-stat{
+  padding:14px 15px;border-radius:10px;
+  background:linear-gradient(135deg,rgba(29,78,216,.10),rgba(109,40,217,.07));
+  border:1.5px solid rgba(29,78,216,.28);
+  position:relative;overflow:hidden;
+  transition:transform .25s ease;
+}
+.mini-stat:hover{transform:translateY(-3px)}
+.mini-stat::before{
+  content:"";position:absolute;top:0;left:0;
+  width:4px;height:100%;
+  background:var(--grad-gold);
+}
+.mini-stat strong{
+  display:block;font-family:"Courier Prime",monospace;
+  font-size:23px;font-weight:700;color:var(--navy);line-height:1;
+}
+.mini-stat span{
+  font-size:11.5px;font-weight:800;
+  color:var(--ink-mute);letter-spacing:.7px;
+  margin-top:4px;display:block;
+}
+.side-chips{display:flex;flex-direction:column;gap:10px}
+.chip{
+  display:flex;align-items:center;gap:11px;
+  padding:13px 15px;background:#fff;
+  border-radius:10px;
+  border:1.5px solid rgba(140,120,80,.35);
+  box-shadow:0 8px 18px rgba(0,0,0,.08);
+  font-size:13.5px;font-weight:800;color:var(--navy);
+  transition:all .25s ease;cursor:default;
+}
+.chip:hover{
+  transform:translateX(-4px);
+  border-color:var(--royal);
+  box-shadow:0 12px 26px rgba(29,78,216,.22);
+}
+.chip i{
+  width:34px;height:34px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:8px;font-size:14px;color:#fff;flex-shrink:0;
+}
+.chip i.blue{background:var(--grad-hero)}
+.chip i.amber{background:var(--grad-gold)}
+.chip i.green{background:linear-gradient(135deg,#059669,#047857)}
+.chip i.violet{background:var(--grad-cool)}
+.chip i.rose{background:linear-gradient(135deg,#be123c,#9f1239)}
+
+/* =========================================================
+   TIMELINE
+========================================================= */
+.timeline{
+  position:relative;padding-right:30px;
+  height:calc(100% - 95px);overflow:hidden;
+}
+.timeline::before{
+  content:"";position:absolute;
+  right:8px;top:6px;bottom:6px;width:3.5px;border-radius:3px;
+  background:linear-gradient(to bottom,var(--royal),var(--violet),var(--amber),var(--rose));
+  box-shadow:0 0 14px rgba(109,40,217,.45);
+}
+.tl-item{position:relative;margin-bottom:14px;padding-right:26px}
+.tl-item::before{
+  content:"";position:absolute;
+  right:-3px;top:7px;width:19px;height:19px;
+  border-radius:50%;background:#fff;
+  border:4px solid var(--royal);z-index:2;
+  box-shadow:0 0 0 4px rgba(29,78,216,.18);
+}
+.tl-item:nth-child(2)::before{border-color:var(--violet);box-shadow:0 0 0 4px rgba(109,40,217,.2)}
+.tl-item:nth-child(3)::before{border-color:var(--emerald);box-shadow:0 0 0 4px rgba(5,150,105,.2)}
+.tl-item:nth-child(4)::before{border-color:var(--amber);box-shadow:0 0 0 4px rgba(217,119,6,.22)}
+.tl-year{
+  font-family:"Courier Prime",monospace;
+  font-size:12.5px;font-weight:700;
+  color:var(--royal);letter-spacing:1px;
+}
+.tl-title{font-size:16.5px;font-weight:900;color:var(--navy);margin-top:3px}
+.tl-text{font-size:13.5px;color:var(--ink-mute);line-height:1.75;margin-top:3px;font-weight:600}
+.skills-cloud{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.skill-pill{
+  font-family:"Courier Prime",monospace;
+  font-size:11.5px;font-weight:700;
+  padding:5px 11px;border-radius:5px;
+  background:rgba(5,150,105,.12);
+  color:#065f46;
+  border:1.5px solid rgba(5,150,105,.35);
+  transition:all .2s ease;cursor:default;
+}
+.skill-pill:hover{background:var(--emerald);color:#fff;transform:translateY(-2px)}
+
+/* =========================================================
+   EXPERIENCE / PROJECT CARDS
+========================================================= */
+.exp-grid{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:12px;height:calc(100% - 90px);
+}
+.exp-card{
+  position:relative;padding:17px 19px;border-radius:12px;
+  background:linear-gradient(145deg,#fff,#f9f4e6);
+  border:1.5px solid rgba(140,120,80,.38);
+  box-shadow:0 10px 24px rgba(0,0,0,.10);
+  overflow:hidden;transition:all .3s ease;
+}
+.exp-card::after{
+  content:"";position:absolute;top:0;right:0;
+  width:5px;height:100%;
+  background:var(--grad-hero);
+  border-radius:0 12px 12px 0;
+}
+.exp-card:nth-child(2)::after{background:var(--grad-gold)}
+.exp-card:nth-child(3)::after{background:linear-gradient(135deg,#059669,#047857)}
+.exp-card:nth-child(4)::after{background:var(--grad-cool)}
+.exp-card:hover{transform:translateY(-4px);box-shadow:0 20px 36px rgba(0,0,0,.18)}
+.exp-date{
+  font-family:"Courier Prime",monospace;
+  font-size:11.5px;font-weight:700;
+  color:var(--amber);letter-spacing:1px;
+}
+.exp-title{font-size:16px;font-weight:900;color:var(--navy);margin-top:6px;line-height:1.25}
+.exp-co{font-size:13px;color:var(--royal);font-weight:800;margin-top:3px}
+.exp-desc{font-size:13px;line-height:1.75;color:var(--ink-mute);margin-top:8px;font-weight:600}
+.exp-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.exp-tag{
+  font-family:"Courier Prime",monospace;
+  font-size:10px;font-weight:700;
+  padding:3px 8px;border-radius:4px;
+  background:rgba(29,78,216,.12);
+  color:var(--navy);
+  border:1.5px solid rgba(29,78,216,.28);
+}
+
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+
+/* =========================================================
+   INTERACTIVE EXPERIENCES
+========================================================= */
+.interactive-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:14px;
+  height:calc(100% - 145px);
+}
+/*.inter-card{
+  position:relative;
+  display:flex;flex-direction:column;
+  padding:18px 18px 16px;
+  border-radius:14px;
+  background:linear-gradient(145deg,#fff,#f8f3e5);
+  border:1.5px solid rgba(140,120,80,.4);
+  box-shadow:0 10px 24px rgba(0,0,0,.10);
+  overflow:hidden;
+  transition:all .35s cubic-bezier(.2,.8,.2,1);
+  cursor:pointer;
+}*/
+
+.inter-card{
+  text-decoration: none;
+  color: inherit;
+  position:relative;
+  display:flex;flex-direction:column;
+  padding:18px 18px 16px;
+  border-radius:14px;
+  background:linear-gradient(145deg,#fff,#f8f3e5);
+  border:1.5px solid rgba(140,120,80,.4);
+  box-shadow:0 10px 24px rgba(0,0,0,.10);
+  overflow:hidden;
+  transition:all .35s cubic-bezier(.2,.8,.2,1);
+  cursor:pointer;
+}
+.inter-card::before{
+  content:"";
+  position:absolute;top:0;right:0;
+  width:6px;height:100%;
+  background:var(--grad-hero);
+  border-radius:0 14px 14px 0;
+}
+.inter-card:nth-child(2)::before{background:var(--grad-gold)}
+.inter-card:nth-child(3)::before{background:linear-gradient(135deg,#059669,#047857)}
+.inter-card:nth-child(4)::before{background:var(--grad-cool)}
+.inter-card:hover{
+  transform:translateY(-5px) scale(1.015);
+  box-shadow:0 22px 42px rgba(0,0,0,.2);
+}
+.inter-icon{
+  width:46px;height:46px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:20px;
+  background:var(--grad-hero);
+  box-shadow:0 8px 18px rgba(0,0,0,.18);
+  margin-bottom:12px;
+}
+.inter-card:nth-child(2) .inter-icon{background:var(--grad-gold)}
+.inter-card:nth-child(3) .inter-icon{background:linear-gradient(135deg,#059669,#047857)}
+.inter-card:nth-child(4) .inter-icon{background:var(--grad-cool)}
+.inter-title{
+  font-family:"Cairo",sans-serif;
+  font-size:15.5px;font-weight:900;
+  color:var(--navy);
+  line-height:1.25;margin-bottom:6px;
+}
+.inter-desc{
+  font-size:12px;line-height:1.7;
+  color:var(--ink-mute);
+  font-weight:600;flex:1;
+}
+.inter-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:10px}
+.inter-tag{
+  font-family:"Courier Prime",monospace;
+  font-size:9.5px;font-weight:700;
+  padding:3px 7px;border-radius:4px;
+  background:rgba(29,78,216,.1);
+  color:var(--navy);
+  border:1px solid rgba(29,78,216,.25);
+}
+.inter-badge{
+  position:absolute;
+  top:12px;left:12px;
+  font-family:"Courier Prime",monospace;
+  font-size:9px;font-weight:700;
+  padding:3px 8px;border-radius:10px;
+  background:rgba(5,150,105,.15);
+  color:#065f46;
+  border:1px solid rgba(5,150,105,.35);
+  letter-spacing:.5px;
+}
+
+/* =========================================================
+   AI IMAGES
+========================================================= */
+.ai-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  grid-template-rows:repeat(2,1fr);
+  gap:10px;
+  height:calc(100% - 145px);
+}
+.ai-thumb{
+  position:relative;
+  border-radius:12px;
+  overflow:hidden;
+  cursor:zoom-in;
+  background:linear-gradient(135deg,#e0e7ff,#c7d2fe);
+  border:1.5px solid rgba(140,120,80,.4);
+  box-shadow:0 8px 20px rgba(0,0,0,.10);
+  transition:all .3s cubic-bezier(.2,.8,.2,1);
+}
+.ai-thumb:hover{
+  transform:scale(1.03);
+  box-shadow:0 16px 32px rgba(0,0,0,.22);
+  border-color:var(--violet);
+}
+.ai-thumb img{
+  width:100%;height:100%;
+  object-fit:cover;
+  display:block;
+  transition:transform .5s ease;
+}
+.ai-thumb:hover img{transform:scale(1.1)}
+.ai-thumb::after{
+  content:"🔍";
+  position:absolute;
+  inset:0;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(11,37,69,.55);
+  color:#fff;
+  font-size:28px;
+  opacity:0;
+  transition:opacity .3s ease;
+  pointer-events:none;
+}
+.ai-thumb:hover::after{opacity:1}
+.ai-num{
+  position:absolute;
+  top:8px;right:8px;
+  font-family:"Courier Prime",monospace;
+  font-size:9px;font-weight:700;
+  padding:3px 7px;
+  border-radius:10px;
+  background:rgba(0,0,0,.65);
+  color:#fff;
+  backdrop-filter:blur(6px);
+  letter-spacing:.5px;
+  z-index:2;
+}
+
+/* =========================================================
+   VIDEOS
+========================================================= */
+.video-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  grid-template-rows:repeat(2,1fr);
+  gap:10px;
+  height:calc(100% - 145px);
+}
+.video-card{
+  position:relative;
+  border-radius:12px;
+  overflow:hidden;
+  background:#000;
+  border:1.5px solid rgba(140,120,80,.4);
+  box-shadow:0 8px 20px rgba(0,0,0,.14);
+  transition:all .3s ease;
+}
+.video-card:hover{
+  transform:translateY(-3px);
+  border-color:var(--rose);
+  box-shadow:0 16px 32px rgba(0,0,0,.24);
+}
+.video-card video{
+  width:100%;height:100%;
+  object-fit:cover;
+  display:block;
+  background:#000;
+}
+.video-num{
+  position:absolute;
+  top:8px;right:8px;
+  font-family:"Courier Prime",monospace;
+  font-size:9px;font-weight:700;
+  padding:3px 7px;
+  border-radius:10px;
+  background:rgba(0,0,0,.7);
+  color:#fff;
+  backdrop-filter:blur(6px);
+  letter-spacing:.5px;
+  z-index:2;
+  pointer-events:none;
+}
+
+/* =========================================================
+   PDF FILES
+========================================================= */
+.pdf-intro{
+  font-size:14px;font-weight:600;
+  color:var(--ink-mute);line-height:1.85;
+  margin-bottom:14px;padding:12px 16px;
+  border-right:3px solid var(--rose);
+  background:rgba(190,18,60,.06);
+  border-radius:0 8px 8px 0;
+}
+.pdf-grid{
+  display:grid;
+  grid-template-columns:repeat(2, 1fr);
+  gap:14px;
+  height:calc(100% - 145px);
+}
+.pdf-card{
+  position:relative;
+  display:flex;align-items:center;gap:14px;
+  padding:16px 18px;
+  background:linear-gradient(145deg,#fff,#f9f4e6);
+  border:1.5px solid rgba(140,120,80,.4);
+  border-radius:12px;
+  text-decoration:none;
+  color:inherit;
+  box-shadow:0 8px 20px rgba(0,0,0,.08);
+  transition:all .3s cubic-bezier(.2,.8,.2,1);
+  overflow:hidden;
+}
+.pdf-card:hover{
+  transform:translateY(-4px);
+  box-shadow:0 20px 36px rgba(0,0,0,.18);
+  border-color:var(--rose);
+}
+.pdf-card::before{
+  content:"PDF";
+  position:absolute;
+  top:8px;right:10px;
+  font-family:"Courier Prime",monospace;
+  font-size:9px;font-weight:700;
+  color:var(--rose);
+  letter-spacing:1px;
+  padding:2px 6px;
+  border:1px dashed rgba(190,18,60,.5);
+  border-radius:3px;
+}
+.pdf-icon{
+  flex-shrink:0;
+  width:60px;height:60px;
+  border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;
+  font-size:28px;
+  box-shadow:0 6px 14px rgba(0,0,0,.18);
+}
+.pdf-icon.r{background:linear-gradient(135deg,#be123c,#9f1239)}
+.pdf-icon.b{background:linear-gradient(135deg,#1d4ed8,#0b2545)}
+.pdf-info{flex:1;min-width:0}
+.pdf-name{
+  font-family:"Cairo",sans-serif;
+  font-size:15px;font-weight:900;
+  color:var(--navy);
+  line-height:1.25;margin-bottom:3px;
+}
+.pdf-meta{
+  font-family:"Courier Prime",monospace;
+  font-size:10.5px;font-weight:700;
+  color:var(--ink-mute);
+  letter-spacing:.5px;
+  display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+}
+.pdf-meta span{display:inline-flex;align-items:center;gap:4px}
+.pdf-meta i{color:var(--rose);font-size:10px}
+.pdf-dl{
+  flex-shrink:0;
+  width:38px;height:38px;
+  border-radius:50%;
+  background:rgba(190,18,60,.10);
+  color:var(--rose);
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;
+  transition:all .25s ease;
+}
+.pdf-card:hover .pdf-dl{
+  background:var(--rose);color:#fff;
+  transform:rotate(-15deg) scale(1.1);
+}
+
+/* =========================================================
+   LINKS PAGE
+========================================================= */
+.links-grid{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:16px;
+  height:calc(100% - 145px);
+}
+.link-card{
+  position:relative;
+  display:flex;flex-direction:column;
+  border-radius:16px;
+  overflow:hidden;
+  background:#fff;
+  border:1.5px solid rgba(140,120,80,.4);
+  box-shadow:0 10px 24px rgba(0,0,0,.10);
+  transition:all .35s cubic-bezier(.2,.8,.2,1);
+}
+.link-card:hover{
+  transform:translateY(-5px);
+  box-shadow:0 22px 44px rgba(0,0,0,.22);
+  border-color:var(--violet);
+}
+.link-preview{
+  position:relative;
+  height:170px;
+  background:linear-gradient(135deg,#0b2545,#1d4ed8);
+  overflow:hidden;
+  border-bottom:1.5px solid rgba(140,120,80,.3);
+}
+.link-preview iframe{
+  width:200%;
+  height:200%;
+  border:0;
+  transform:scale(.5);
+  transform-origin: top left;
+  pointer-events:none;
+  filter:saturate(1.05);
+  background:#fff;
+}
+.link-preview::after{
+  content:"";
+  position:absolute;inset:0;
+  background:linear-gradient(180deg,transparent 55%,rgba(11,37,69,.35));
+  pointer-events:none;
+}
+.link-preview-fallback{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  flex-direction:column;
+  gap:10px;
+  color:#fff;
+  font-family:"Courier Prime",monospace;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:2px;
+  text-align:center;
+}
+.link-preview-fallback i{
+  font-size:36px;
+  opacity:.55;
+}
+.link-preview-badge{
+  position:absolute;
+  top:10px;right:10px;
+  font-family:"Courier Prime",monospace;
+  font-size:9px;font-weight:700;
+  padding:3px 9px;
+  border-radius:10px;
+  background:rgba(255,255,255,.92);
+  color:var(--navy);
+  letter-spacing:1px;
+  z-index:3;
+  box-shadow:0 3px 8px rgba(0,0,0,.2);
+}
+.link-body{
+  padding:14px 16px 15px;
+  display:flex;flex-direction:column;
+  flex:1;min-height:0;
+}
+.link-icon{
+  width:40px;height:40px;
+  border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;
+  font-size:17px;
+  margin-bottom:9px;
+  box-shadow:0 6px 14px rgba(0,0,0,.18);
+}
+.link-icon.v{background:linear-gradient(135deg,#6d28d9,#4c1d95)}
+.link-icon.b{background:linear-gradient(135deg,#1d4ed8,#0b2545)}
+.link-title{
+  font-family:"Cairo",sans-serif;
+  font-size:15px;font-weight:900;
+  color:var(--navy);
+  line-height:1.25;
+  margin-bottom:5px;
+}
+.link-url{
+  font-family:"Courier Prime",monospace;
+  font-size:10.5px;font-weight:700;
+  color:var(--ink-mute);
+  letter-spacing:.3px;
+  margin-bottom:6px;
+  word-break:break-all;
+  direction:ltr;
+  text-align:left;
+}
+.link-desc{
+  font-size:12px;line-height:1.65;
+  color:var(--ink-mute);
+  font-weight:600;flex:1;
+}
+.link-actions{
+  display:flex;gap:8px;
+  margin-top:11px;
+}
+.link-btn{
+  flex:1;
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  padding:9px 14px;
+  border-radius:9px;
+  font-family:"Cairo",sans-serif;
+  font-size:12.5px;font-weight:900;
+  text-decoration:none;
+  transition:all .25s cubic-bezier(.2,.8,.2,1);
+  border:none;cursor:pointer;
+}
+.link-btn.primary{
+  background:var(--grad-cool);
+  color:#fff;
+  box-shadow:0 8px 18px rgba(109,40,217,.28);
+}
+.link-btn.primary:hover{
+  transform:translateY(-2px);
+  box-shadow:0 12px 26px rgba(109,40,217,.42);
+}
+.link-btn.ghost{
+  background:rgba(109,40,217,.08);
+  color:var(--violet);
+  border:1.5px solid rgba(109,40,217,.28);
+}
+.link-btn.ghost:hover{
+  background:rgba(109,40,217,.16);
+  transform:translateY(-2px);
+}
+
+/* =========================================================
+   AUDIO / MP3
+========================================================= */
+.audio-intro{
+  font-size:14px;font-weight:600;
+  color:var(--ink-mute);line-height:1.85;
+  margin-bottom:14px;padding:12px 16px;
+  border-right:3px solid var(--royal);
+  background:rgba(29,78,216,.06);
+  border-radius:0 8px 8px 0;
+}
+.audio-grid{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:20px;height:calc(100% - 145px);align-items:center;
+}
+.audio-box{
+  height:100%;border-radius:18px;
+  padding:22px;
+  background:linear-gradient(160deg,#f8fafc 0%,#eef2f7 100%);
+  border:1.5px solid rgba(100,116,139,.35);
+  box-shadow:0 22px 44px -12px rgba(0,0,0,.20), inset 0 0 40px rgba(255,255,255,.7);
+  display:flex;flex-direction:column;align-items:center;justify-content:space-between;
+  position:relative;overflow:hidden;
+}
+.audio-box::before{
+  content:"◉ AUDIO";
+  position:absolute;top:12px;left:16px;
+  font-family:"Courier Prime",monospace;
+  font-size:10px;font-weight:700;
+  color:#64748b;letter-spacing:2px;
+}
+.audio-box::after{
+  content:"";position:absolute;
+  width:200px;height:200px;border-radius:50%;
+  background:radial-gradient(circle,rgba(29,78,216,.12),transparent 70%);
+  bottom:-80px;right:-80px;pointer-events:none;
+}
+.cd-area{
+  width:180px;height:180px;
+  display:flex;align-items:center;justify-content:center;
+  margin-top:10px;position:relative;
+}
+.cd-disc{
+  width:160px;height:160px;border-radius:50%;
+  background:radial-gradient(circle at center,
+    #f8fafc 0 6%,#cbd5e1 7% 9%,#64748b 10% 11%,
+    #e2e8f0 12% 17%,#94a3b8 18% 19%,
+    #e5e7eb 20% 28%,#475569 29% 30%,
+    #e2e8f0 31% 37%,#94a3b8 38% 40%,
+    #e5e7eb 41% 100%);
+  box-shadow:0 12px 25px rgba(0,0,0,.28), inset 0 0 0 1px rgba(255,255,255,.6);
+  position:relative;
+}
+.cd-disc::after{
+  content:"";position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:22px;height:22px;border-radius:50%;
+  background:#f8fafc;border:5px solid #64748b;
+}
+.cd-disc.playing{
+  animation:cdSpin 2.4s linear infinite;
+  box-shadow:0 15px 35px rgba(0,0,0,.35), 0 0 44px rgba(29,78,216,.5);
+}
+@keyframes cdSpin{to{transform:rotate(360deg)}}
+.audio-title{
+  font-family:"Courier Prime",monospace;
+  font-size:15.5px;font-weight:700;
+  color:var(--navy);text-align:center;letter-spacing:1px;
+}
+.audio-meta{font-size:12.5px;font-weight:700;color:var(--ink-mute);margin-top:5px;text-align:center}
+.audio-controls{width:100%}
+.audio-buttons{display:flex;justify-content:center;margin-bottom:12px}
+.audio-play{
+  width:54px;height:54px;border-radius:50%;
+  border:none;background:var(--grad-hero);
+  color:#fff;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;
+  box-shadow:0 12px 24px rgba(0,0,0,.28), inset 0 -3px 0 rgba(0,0,0,.18);
+  transition:all .25s cubic-bezier(.2,.8,.2,1);
+}
+.audio-play:hover{
+  transform:scale(1.08);
+  box-shadow:0 16px 32px rgba(0,0,0,.35), inset 0 -3px 0 rgba(0,0,0,.18);
+}
+.audio-progress{
+  width:100%;height:6px;appearance:none;
+  border-radius:5px;background:#cbd5e1;
+  cursor:pointer;outline:none;
+}
+.audio-progress::-webkit-slider-thumb{
+  appearance:none;width:14px;height:14px;
+  border-radius:50%;background:var(--royal);
+  cursor:pointer;
+  box-shadow:0 2px 6px rgba(29,78,216,.5);
+  border:2px solid #fff;
+}
+.audio-progress::-moz-range-thumb{
+  width:14px;height:14px;border-radius:50%;
+  background:var(--royal);cursor:pointer;
+  box-shadow:0 2px 6px rgba(29,78,216,.5);
+  border:2px solid #fff;
+}
+.audio-time{
+  display:flex;justify-content:space-between;
+  direction:ltr;
+  font-family:"Courier Prime",monospace;
+  font-size:10.5px;font-weight:700;
+  color:var(--ink-mute);margin-top:6px;
+}
+.audio-file{display:none}
+
+/* =========================================================
+   FEEDBACK FORM
+========================================================= */
+.fb-page{height:100%;display:flex;flex-direction:column}
+.fb-intro{
+  font-size:14px;font-weight:600;
+  color:var(--ink-mute);line-height:1.85;
+  margin-bottom:14px;padding:12px 16px;
+  border-right:3px solid var(--violet);
+  background:rgba(109,40,217,.07);
+  border-radius:0 8px 8px 0;
+}
+.fb-form{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:12px 16px;flex:1;align-content:start;
+}
+.fb-field{display:flex;flex-direction:column;gap:5px}
+.fb-field.full{grid-column:1/-1}
+.fb-field label{
+  font-family:"Cairo",sans-serif;
+  font-size:13px;font-weight:900;
+  color:var(--navy);
+  display:flex;align-items:center;gap:7px;
+}
+.fb-field label i{
+  width:22px;height:22px;border-radius:6px;
+  display:inline-flex;align-items:center;justify-content:center;
+  background:var(--grad-hero);color:#fff;font-size:10px;
+}
+.fb-field label i.violet{background:var(--grad-cool)}
+.fb-field label i.amber{background:var(--grad-gold)}
+.fb-field label i.green{background:linear-gradient(135deg,#059669,#047857)}
+.fb-field input,
+.fb-field textarea{
+  width:100%;padding:11px 14px;
+  font-family:"Tajawal",sans-serif;
+  font-size:14px;font-weight:600;
+  color:var(--ink);
+  border:1.5px solid rgba(140,120,80,.5);
+  border-radius:9px;
+  background:rgba(255,255,255,.92);
+  outline:none;transition:all .25s ease;
+  direction:rtl;
+}
+.fb-field textarea{min-height:88px;resize:vertical;line-height:1.7}
+.fb-field input:focus,
+.fb-field textarea:focus{
+  border-color:var(--royal);
+  background:#fff;
+  box-shadow:0 0 0 4px rgba(29,78,216,.16);
+}
+.star-rating{display:flex;gap:6px;direction:ltr;padding:5px 0}
+.star-rating input{display:none}
+.star-rating label{
+  cursor:pointer;font-size:24px;color:#cbd5e1;
+  transition:all .2s ease;
+  background:none!important;width:auto!important;height:auto!important;
+  border-radius:0!important;padding:0!important;
+}
+.star-rating label:hover,
+.star-rating label:hover ~ label{color:#d97706}
+.star-rating input:checked ~ label{color:#d97706}
+.fb-submit{
+  grid-column:1/-1;
+  display:flex;gap:10px;align-items:center;justify-content:space-between;
+  margin-top:4px;padding:12px 16px;
+  background:linear-gradient(135deg,rgba(29,78,216,.10),rgba(109,40,217,.08));
+  border:1.5px dashed rgba(29,78,216,.45);
+  border-radius:12px;
+}
+.fb-status{
+  font-family:"Courier Prime",monospace;
+  font-size:12px;font-weight:700;
+  color:var(--ink-mute);
+}
+.fb-status.ok{color:#059669}
+.fb-status.err{color:#be123c}
+.fb-btn{
+  display:inline-flex;align-items:center;gap:9px;
+  padding:12px 22px;
+  border:none;border-radius:10px;
+  background:var(--grad-hero);color:#fff;
+  font-family:"Cairo",sans-serif;
+  font-size:14.5px;font-weight:900;
+  cursor:pointer;
+  box-shadow:0 12px 24px rgba(0,0,0,.28), inset 0 -2px 0 rgba(0,0,0,.2);
+  transition:all .25s cubic-bezier(.2,.8,.2,1);
+}
+.fb-btn:hover{
+  transform:translateY(-2px);
+  box-shadow:0 16px 32px rgba(0,0,0,.35), inset 0 -2px 0 rgba(0,0,0,.2);
+}
+
+/* =========================================================
+   QR PAGE
+========================================================= */
+.qr-page{
+  height:100%;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  text-align:center;padding:30px;
+  background:
+    radial-gradient(circle at 50% 45%,rgba(29,78,216,.14),transparent 55%),
+    radial-gradient(circle at 80% 80%,rgba(5,150,105,.12),transparent 50%),
+    linear-gradient(180deg,#fbf7ec,#f2ebd9);
+  position:relative;
+}
+.qr-page::before{
+  content:"";position:absolute;
+  width:240px;height:240px;border-radius:50%;
+  border:1.5px dashed rgba(29,78,216,.3);
+  top:50%;left:50%;
+  transform:translate(-50%,-55%);
+  animation:spinRing 30s linear infinite;
+  pointer-events:none;
+}
+.qr-page::after{
+  content:"";position:absolute;
+  width:190px;height:190px;border-radius:50%;
+  border:1px solid rgba(217,119,6,.4);
+  top:50%;left:50%;
+  transform:translate(-50%,-55%);
+  animation:spinRing 20s linear infinite reverse;
+  pointer-events:none;
+}
+.qr-eyebrow{
+  display:inline-flex;align-items:center;gap:8px;
+  font-family:"Courier Prime",monospace;
+  font-size:12px;font-weight:700;
+  padding:6px 14px;border-radius:20px;
+  background:rgba(29,78,216,.14);
+  color:var(--royal);
+  border:1.5px solid rgba(29,78,216,.32);
+  letter-spacing:1.5px;
+  margin-bottom:14px;z-index:2;
+}
+.qr-eyebrow .dot{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--emerald);
+  box-shadow:0 0 12px var(--emerald);
+  animation:pulseDot 1.6s infinite;
+}
+.qr-title-big{
+  font-family:"Cairo",sans-serif;
+  font-size:28px;font-weight:900;
+  color:var(--navy);
+  letter-spacing:-.5px;margin-bottom:4px;z-index:2;
+}
+.qr-subtitle-small{
+  font-size:14px;font-weight:600;
+  color:var(--ink-mute);margin-bottom:20px;z-index:2;
+}
+#qrcode{
+  padding:16px;background:#fff;border-radius:16px;
+  box-shadow:0 22px 45px rgba(0,0,0,.28),
+    0 0 0 1.5px rgba(140,120,80,.4),
+    0 0 44px rgba(29,78,216,.2);
+  z-index:2;position:relative;
+  transition: transform .3s ease;
+}
+#qrcode:hover{transform: scale(1.04)}
+.qr-social{display:flex;gap:14px;margin-top:22px;z-index:2}
+.qr-social a{
+  width:42px;height:42px;border-radius:50%;
+  background:var(--grad-hero);color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;text-decoration:none;
+  box-shadow:0 10px 20px rgba(0,0,0,.28);
+  transition:transform .25s ease;
+}
+.qr-social a:nth-child(2){background:var(--grad-cool)}
+.qr-social a:nth-child(3){background:var(--grad-gold)}
+.qr-social a:hover{transform:translateY(-4px) scale(1.1)}
+.qr-caption{
+  margin-top:18px;
+  font-family:"Courier Prime",monospace;
+  font-size:11.5px;font-weight:700;
+  color:var(--ink-mute);
+  letter-spacing:2px;z-index:2;
+}
+
+/* =========================================================
+   BACK COVER
+========================================================= */
+.back-cover{
+  height:100%;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  text-align:center;position:relative;padding:40px;
+  background:
+    radial-gradient(circle at 50% 30%,rgba(29,78,216,.22),transparent 45%),
+    radial-gradient(circle at 80% 80%,rgba(109,40,217,.18),transparent 40%),
+    linear-gradient(180deg,#fffdf6,#f2ebd9);
+}
+.thank-you{
+  font-family:"Alex Brush",cursive;
+  font-size:100px;
+  background:var(--grad-hero);
+  -webkit-background-clip:text;background-clip:text;
+  color:transparent;transform:rotate(-2deg);line-height:1;
+  filter: drop-shadow(0 6px 12px rgba(11,37,69,.22));
+}
+.thank-ar{
+  font-family:"Cairo",sans-serif;
+  font-size:26px;font-weight:900;
+  color:var(--ink-soft);margin-top:-6px;
+}
+.back-small{
+  margin-top:16px;
+  font-family:"Courier Prime",monospace;
+  font-size:13px;font-weight:700;
+  color:var(--ink-mute);letter-spacing:2px;
+}
+.back-deco{margin-top:24px;display:flex;gap:14px;align-items:center}
+.back-deco span{width:9px;height:9px;border-radius:50%}
+.back-deco span:nth-child(1){background:var(--royal)}
+.back-deco span:nth-child(2){background:var(--violet)}
+.back-deco span:nth-child(3){background:var(--emerald)}
+.back-deco span:nth-child(4){background:var(--amber)}
+.back-deco span:nth-child(5){background:var(--rose)}
+.back-signature{
+  margin-top:20px;
+  font-family:"Alex Brush",cursive;
+  font-size:36px;
+  color:var(--navy);transform:rotate(-3deg);
+}
+
+/* =========================================================
+   BOOKMARKS
+========================================================= */
+.bookmarks{
+  position:absolute;left:-92px;top:0;
+  width:106px;height:100%;
+  pointer-events:auto;z-index:500;
+}
+.bm{
+  position:absolute;left:0;
+  display:flex;align-items:center;justify-content:center;
+  gap:5px;border-radius:8px 0 0 8px;
+  cursor:pointer;
+  font-family:"Cairo",sans-serif;
+  font-size:11.5px;font-weight:900;
+  color:#0b1221;
+  border:1.5px solid rgba(30,41,59,.22);
+  border-right:none;
+  box-shadow:-6px 6px 16px rgba(0,0,0,.28);
+  transition:all .3s cubic-bezier(.2,.8,.2,1);
+  transform-origin:right center;
+  overflow:hidden;padding:0 10px;
+  backdrop-filter:blur(6px);
+}
+.bm:hover{transform:translateX(-7px) rotate(-1deg)}
+.bm i{font-size:12px}
+
+.bm-cover{top:28px;width:98px;height:42px;background:linear-gradient(135deg,#bfdbfe,#93c5fd)}
+.bm-about{top:76px;width:93px;height:40px;background:linear-gradient(135deg,#fde68a,#fbbf24)}
+.bm-edu{top:122px;width:89px;height:38px;background:linear-gradient(135deg,#a7f3d0,#6ee7b7)}
+.bm-exp{top:166px;width:85px;height:36px;background:linear-gradient(135deg,#ddd6fe,#c4b5fd)}
+.bm-proj{top:208px;width:81px;height:34px;background:linear-gradient(135deg,#fbcfe8,#f9a8d4)}
+.bm-inter{top:248px;width:78px;height:32px;background:linear-gradient(135deg,#fef3c7,#fcd34d)}
+.bm-ai{top:286px;width:75px;height:30px;background:linear-gradient(135deg,#c7d2fe,#a5b4fc)}
+.bm-video{top:322px;width:72px;height:28px;background:linear-gradient(135deg,#fecdd3,#fda4af)}
+.bm-pdf{top:356px;width:69px;height:26px;background:linear-gradient(135deg,#fecaca,#fca5a5)}
+.bm-audio{top:388px;width:66px;height:24px;background:linear-gradient(135deg,#a5f3fc,#67e8f9)}
+.bm-links{top:418px;width:63px;height:22px;background:linear-gradient(135deg,#ddd6fe,#c4b5fd)}
+.bm-fb{top:446px;width:60px;height:22px;background:linear-gradient(135deg,#fef08a,#fde047)}
+.bm-qr{top:474px;width:57px;height:20px;background:linear-gradient(135deg,#c7d2fe,#a5b4fc)}
+
+.bm.active{
+  box-shadow:-10px 8px 22px rgba(0,0,0,.42), 0 0 0 2px rgba(29,78,216,.5);
+  filter:saturate(1.4) brightness(1.06);
+  transform:translateX(-6px) rotate(0deg) scale(1.05);
+}
+.bm.active::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;
+  width:5px;background:var(--grad-hero);
+  border-radius:8px 0 0 8px;
+}
+
+/* =========================================================
+   TURN BUTTONS
+========================================================= */
+.turn-btn{
+  position:absolute;
+  width:64px;height:64px;
+  border:none;background:transparent;
+  cursor:pointer;z-index:20000;
+  padding:0;perspective:400px;
+  filter:drop-shadow(0 12px 24px rgba(0,0,0,.55));
+}
+.turn-btn svg{
+  width:100%;height:100%;
+  transition:transform .35s cubic-bezier(.2,.8,.2,1);
+}
+.turn-btn:hover svg{transform:scale(1.15)}
+.turn-btn:active svg{transform:scale(.92)}
+.turn-next{left:24px;bottom:24px}
+.turn-prev{right:24px;bottom:24px}
+.turn-btn.disabled{opacity:.2;pointer-events:none}
+.turn-btn .turn-label{
+  position:absolute;
+  font-family:"Cairo",sans-serif;
+  font-size:12px;font-weight:900;
+  color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.8);
+  pointer-events:none;white-space:nowrap;
+}
+.turn-next .turn-label{right:-2px;top:8px}
+.turn-prev .turn-label{left:-2px;top:8px}
+
+/* =========================================================
+   COUNTER
+========================================================= */
+.counter{
+  position:absolute;
+  bottom:-48px;left:50%;transform:translateX(-50%);
+  font-family:"Courier Prime",monospace;
+  font-size:12.5px;font-weight:700;
+  letter-spacing:4px;
+  color:rgba(255,255,255,.85);
+  background:rgba(0,0,0,.6);
+  backdrop-filter:blur(10px);
+  padding:8px 22px;border-radius:22px;
+  border:1px solid rgba(255,255,255,.15);
+  direction:ltr;
+  box-shadow:0 8px 20px rgba(0,0,0,.35);
+}
+.counter .cur{color:#60a5fa;font-weight:700;text-shadow:0 0 8px rgba(96,165,250,.8)}
+
+/* =========================================================
+   LIGHTBOX
+========================================================= */
+.lightbox{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.92);
+  backdrop-filter:blur(16px);
+  z-index:100000;
+  display:none;
+  align-items:center;justify-content:center;
+  padding:40px;
+  cursor:zoom-out;
+  animation:lbFade .35s ease;
+}
+.lightbox.open{display:flex}
+@keyframes lbFade{from{opacity:0}to{opacity:1}}
+.lightbox img{
+  max-width:92vw;max-height:88vh;
+  border-radius:14px;
+  box-shadow:0 40px 80px rgba(0,0,0,.8);
+  border:2px solid rgba(255,255,255,.15);
+  animation:lbZoom .35s cubic-bezier(.2,.8,.2,1);
+}
+@keyframes lbZoom{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
+.lightbox-close{
+  position:absolute;top:24px;right:24px;
+  width:48px;height:48px;border-radius:50%;
+  background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.25);
+  color:#fff;font-size:20px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  transition:all .25s ease;
+}
+.lightbox-close:hover{
+  background:var(--rose);border-color:var(--rose);
+  transform:rotate(90deg);
+}
+.lightbox-caption{
+  position:absolute;bottom:30px;left:50%;
+  transform:translateX(-50%);
+  font-family:"Courier Prime",monospace;
+  font-size:13px;font-weight:700;
+  color:rgba(255,255,255,.8);
+  letter-spacing:2px;
+  padding:8px 20px;
+  border-radius:20px;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.15);
+}
+
+/* =========================================================
+   HINT
+========================================================= */
+.hint{
+  position:fixed;bottom:22px;right:24px;
+  font-family:"Courier Prime",monospace;
+  font-size:11.5px;font-weight:700;
+  color:rgba(255,255,255,.65);
+  letter-spacing:1px;z-index:100;
+  pointer-events:none;
+  animation:hintPulse 3s ease-in-out infinite;
+  text-shadow:0 2px 6px rgba(0,0,0,.5);
+}
+.hint i{margin-left:6px;color:#60a5fa}
+@keyframes hintPulse{50%{opacity:.4}}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+@media (max-width:1200px){
+  .stage{padding:0 90px}
+  .scene{transform:scale(.85)}
+  .bm{font-size:10.5px}
+  .bookmarks{left:-80px}
+}
+@media (max-width:900px){
+  .stage{padding:0 40px}
+  .scene{transform:scale(.68)}
+  .bookmarks{left:-60px}
+  .bm{font-size:9.5px}
+}
+@media (max-width:640px){
+  .stage{padding:0 12px}
+  .scene{transform:scale(.44)}
+  .bookmarks{display:none}
+}
+</style>
+</head>
+
+<body>
+
+<div class="bg-stage"></div>
+<div class="bg-mesh"></div>
+<div class="bg-glow glow-1"></div>
+<div class="bg-glow glow-2"></div>
+<div class="bg-glow glow-3"></div>
+<div class="particles" id="particles"></div>
+
+<div class="stage" id="stage">
+  <div class="scene" id="scene">
+    <div class="book" id="book">
+
+      <!-- ============================================
+           PAGE 0 — FRONT COVER
+      ============================================= -->
+      <section class="book-page" data-index="0">
+        <div class="face front">
+          <div class="cover">
+            <div class="code-deco code-1">
+              &lt;portfolio&gt;<br>
+              &nbsp;&nbsp;digital.skills = true;<br>
+              &nbsp;&nbsp;creative.mode = ON;<br>
+              &lt;/portfolio&gt;
+            </div>
+            <div class="code-deco code-2">
+              01001001 01000001<br>
+              C++ / JAVA / SQL / JS<br>
+              Aqaba · Jordan
+            </div>
+
+            <div class="cover-grid">
+              <div class="cover-left">
+                <div class="cover-eyebrow">
+                  <span class="dot"></span>
+                  DIGITAL PORTFOLIO · 2026
+                </div>
+                <h1 class="cover-name-en">Tamara</h1>
+                <div class="cover-name-ar">تمارا <span>الشباطات</span></div>
+
+                <div class="photo-zone">
+                  <div class="photo-ring"></div>
+                  <div class="photo-inner">
+                    <img src="assets/profile.jpg" alt="Tamara"
+                         onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22><defs><linearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22><stop offset=%220%22 stop-color=%22%231d4ed8%22/><stop offset=%221%22 stop-color=%22%236d28d9%22/></linearGradient></defs><rect width=%22100%25%22 height=%22100%25%22 fill=%22%22/><circle cx=%22100%22 cy=%2275%22 r=%2242%22 fill=%22url(%23g)%22/><path d=%22M40 200 Q100 118 160 200%22 fill=%22%230b2545%22/></svg>';">
+                  </div>
+                  <div class="photo-badge">DIGITAL CREATOR</div>
+                </div>
+
+                <div class="cover-role">
+                  <i class="fa-solid fa-code"></i>
+                  Digital Skills · Full Stack · Data
+                </div>
+                <p class="cover-desc">
+                  مدربة مهارات رقمية ومطورة مهتمة بتحويل التكنولوجيا
+                  إلى تجارب عملية وتفاعلية، تجمع بين البرمجة، قواعد البيانات،
+                  المهارات الرقمية والتصميم الإبداعي.
+                </p>
+                <div class="tech-tags">
+                  <span class="tech-tag">C++</span>
+                  <span class="tech-tag">Java</span>
+                  <span class="tech-tag">JavaScript</span>
+                  <span class="tech-tag">SQL</span>
+                  <span class="tech-tag">React</span>
+                  <span class="tech-tag">PHP</span>
+                  <span class="tech-tag">AI</span>
+                </div>
+              </div>
+
+              <div class="pc-zone">
+                <div class="retro-pc">
+                  <div style="width:170px;background:#e2e8f0;border:2px solid #64748b;border-radius:12px;padding:10px;box-shadow:0 10px 24px rgba(0,0,0,.28), inset 0 0 0 1px rgba(255,255,255,.6);">
+                    <div class="pc-screen">
+                      C:\&gt; TAMARA_OS<br>
+                      &gt; LOADING SKILLS...<br>
+                      &gt; READY <span class="pc-cursor"></span>
+                    </div>
+                    <div style="margin-top:8px;height:22px;background:#cbd5e1;border-radius:6px;display:flex;align-items:center;justify-content:space-around;padding:0 10px;border-top:1px solid #64748b;">
+                      <div style="width:8px;height:8px;border-radius:50%;background:#059669;box-shadow:0 0 8px #059669;animation:pulseDot 1.4s infinite;"></div>
+                      <div style="width:50px;height:3px;border-radius:2px;background:#475569;"></div>
+                      <div style="width:8px;height:8px;border-radius:50%;background:#d97706;"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="cover-stamp">MADE<br>WITH<br>CODE</div>
+          </div>
+        </div>
+        <div class="face back">
+          <div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:rgba(11,37,69,.28);font-family:'Courier Prime',monospace;font-size:13px;font-weight:700;letter-spacing:4px;gap:10px;">
+            <div>◉ ◉ ◉</div>
+            <div>PROPERTY OF TAMARA</div>
+            <div>DIGITAL PORTFOLIO · 2026</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================
+           PAGE 1 — ABOUT
+      ============================================= -->
+      <section class="book-page" data-index="1">
+        <div class="face front">
+          <div class="paper-lines"></div>
+          <div class="page-content">
+            <div class="page-title">عني</div>
+            <div class="page-subtitle">// بداية الحكاية</div>
+            <div class="section-line"></div>
+
+            <div class="about-layout">
+              <div class="glass-note">
+                <p class="about-text">
+                  أعمل في مجال <strong>المهارات الرقمية والتدريب والتكنولوجيا</strong>،
+                  وأسعى إلى بناء تجارب تعليمية ورقمية تجمع بين
+                  المعرفة التقنية والتطبيق العملي.
+                  <br><br>
+                  خبرتي تمتد عبر التدريب، البرمجة، قواعد البيانات،
+                  تطبيقات الويب، الشبكات، الأنظمة، التسويق الرقمي
+                  والأدوات الحديثة المعتمدة على <strong>الذكاء الاصطناعي</strong>.
+                </p>
+                <div class="mini-stats">
+                  <div class="mini-stat"><strong>5+</strong><span>YEARS EXPERIENCE</span></div>
+                  <div class="mini-stat"><strong>AI</strong><span>CREATIVE TOOLS</span></div>
+                  <div class="mini-stat"><strong>WEB</strong><span>DEVELOPMENT</span></div>
+                  <div class="mini-stat"><strong>DATA</strong><span>DATABASES</span></div>
+                </div>
+              </div>
+
+              <div class="side-chips">
+                <div class="chip"><i class="fa-solid fa-laptop-code blue"></i>Digital Skills Training</div>
+                <div class="chip"><i class="fa-solid fa-database amber"></i>Database Management</div>
+                <div class="chip"><i class="fa-solid fa-code green"></i>Full Stack Development</div>
+                <div class="chip"><i class="fa-solid fa-wand-magic-sparkles violet"></i>AI Creative Tools</div>
+                <div class="chip"><i class="fa-solid fa-network-wired rose"></i>Networks & Systems</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="face back"></div>
+      </section>
+
+      <!-- ============================================
+           PAGE 2 — EDUCATION
+      ============================================= -->
+      <section class="book-page" data-index="2">
+        <div class="face front">
+          <div class="paper-lines"></div>
+          <div class="page-content">
+            <div class="page-title">التعليم والتقنيات</div>
+            <div class="page-subtitle">// knowledge → skills → practice</div>
+            <div class="section-line"></div>
+
+            <div class="timeline">
+              <div class="tl-item">
+                <div class="tl-year">2011 — 2015</div>
+                <div class="tl-title">BSc Computer Information Systems</div>
+                <div class="tl-text">Tafila Technical University · نظم المعلومات الحاسوبية</div>
+              </div>
+              <div class="tl-item">
+                <div class="tl-year">TECHNICAL</div>
+                <div class="tl-title">Programming & Development</div>
+                <div class="tl-text">C++ · Java · JavaScript · PHP · SQL · HTML · CSS · React · ASP.NET</div>
+              </div>
+              <div class="tl-item">
+                <div class="tl-year">DIGITAL</div>
+                <div class="tl-title">Digital Skills</div>
+                <div class="tl-text">Computer applications · Digital marketing · AI tools · multimedia</div>
+              </div>
+              <div class="tl-item">
+                <div class="tl-year">SYSTEMS</div>
+                <div class="tl-title">Networks & Information Systems</div>
+                <div class="tl-text">Networks · Operating Systems · Cloud · Databases</div>
+              </div>
+              <div class="skills-cloud">
+                <span class="skill-pill">C++</span>
+                <span class="skill-pill">JAVA</span>
+                <span class="skill-pill">PHP</span>
+                <span class="skill-pill">LARAVEL</span>
+                <span class="skill-pill">SQL</span>
+                <span class="skill-pill">ORACLE</span>
+                <span class="skill-pill">HTML</span>
+                <span class="skill-pill">CSS</span>
+                <span class="skill-pill">JS</span>
+                <span class="skill-pill">REACT</span>
+                <span class="skill-pill">NETWORKS</span>
+                <span class="skill-pill">CLOUD</span>
+                <span class="skill-pill">AI</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="face back"></div>
+      </section>
+
+      <!-- ============================================
+           PAGE 3 — EXPERIENCE
+      ============================================= -->
+      <section class="book-page" data-index="3">
+        <div class="face front">
+          <div class="page-content">
+            <div class="page-title">الخبرات</div>
+            <div class="page-subtitle">// where knowledge became practice</div>
+            <div class="section-line"></div>
+
+            <div class="exp-grid">
+              <div class="exp-card">
+                <div class="exp-date">AUG 2025 — PRESENT</div>
+                <div class="exp-title">مدربة مهارات رقمية</div>
+                <div class="exp-co">مؤسسة التدريب المهني</div>
+                <div class="exp-desc">تدريب المتدربين على المهارات الرقمية وتطبيقات الحاسوب والتسويق الإلكتروني، مع متابعة شؤون المتدربين والإرشاد المهني.</div>
+                <div class="exp-tags">
+                  <span class="exp-tag">TRAINING</span>
+                  <span class="exp-tag">DIGITAL</span>
+                  <span class="exp-tag">MEDIA</span>
+                </div>
+              </div>
+              <div class="exp-card">
+                <div class="exp-date">2019 — 2023</div>
+                <div class="exp-title">Computer & Digital Skills Teacher</div>
+                <div class="exp-co">Jordanian Education System</div>
+                <div class="exp-desc">تدريس الحاسوب والمهارات الرقمية للصفوف المختلفة، مع التركيز على البرمجة والتطبيقات الرقمية.</div>
+                <div class="exp-tags">
+                  <span class="exp-tag">EDUCATION</span>
+                  <span class="exp-tag">C++</span>
+                  <span class="exp-tag">JAVA</span>
+                </div>
+              </div>
+              <div class="exp-card">
+                <div class="exp-date">TECH / QA</div>
+                <div class="exp-title">Software & QA Experience</div>
+                <div class="exp-co">Digital Projects</div>
+                <div class="exp-desc">خبرة في اختبار البرمجيات، تصميم تطبيقات الويب، قواعد البيانات والعمل على المشاريع الرقمية.</div>
+                <div class="exp-tags">
+                  <span class="exp-tag">QA</span>
+                  <span class="exp-tag">WEB</span>
+                  <span class="exp-tag">SQL</span>
+                </div>
+              </div>
+              <div class="exp-card">
+                <div class="exp-date">TRAINING & MEDIA</div>
+                <div class="exp-title">Digital Content & Communication</div>
+                <div class="exp-co">Training / Media Projects</div>
+                <div class="exp-desc">كتابة المحتوى، الأخبار، الإعلانات، التصاميم الرقمية، إدارة المحتوى والتواصل المؤسسي.</div>
+                <div class="exp-tags">
+                  <span class="exp-tag">CONTENT</span>
+                  <span class="exp-tag">DESIGN</span>
+                  <span class="exp-tag">MEDIA</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="face back"></div>
+      </section>
+
+      <!-- ============================================
+           PAGE 4 — PROJECTS 1
+      ============================================= -->
+<section class="book-page" data-index="4">
+  <div class="face front">
+    <div class="page-content">
+      <div class="page-title">حقيبة أعمالي</div>
+      <div class="page-subtitle">// selected digital projects · 01—04</div>
+      <div class="section-line"></div>
+      
+      <div class="grid-2" style="height:calc(100% - 90px);">
+        
+        <!-- PROJECT 01 -->
+        <article class="exp-card" style="padding:12px;display:flex;flex-direction:column;">
+          <a class="inter-card" href="assets/experiments/exp-05.html" target="_blank" rel="noopener">
+            <div style="width:100%;height:85px;border-radius:8px;background:linear-gradient(135deg,#dbeafe,#c7d2fe);display:flex;align-items:center;justify-content:center;color:var(--royal);font-size:26px;margin-bottom:8px;">
+              <i class="fa-solid fa-chart-line"></i>
+            </div>
+            <div class="exp-date">PROJECT 01</div>
+            <div class="exp-title" style="font-size:14px;margin-top:4px;">اندرويد VS ايفون</div>
+            <div class="exp-desc" style="font-size:11.5px;margin-top:6px;"></div>
+            <div class="exp-tags" style="margin-top:6px;">
+              <span class="exp-tag">UI</span>
+              <span class="exp-tag">JS</span>
+            </div>
+          </a>
+        </article>
+        
+        <!-- PROJECT 02 -->
+        <article class="exp-card" style="padding:12px;display:flex;flex-direction:column;">
+          <a class="inter-card" href="assets/experiments/exp-06.html" target="_blank" rel="noopener">
+            <div style="width:100%;height:85px;border-radius:8px;background:linear-gradient(135deg,#fef3c7,#fde68a);display:flex;align-items:center;justify-content:center;color:var(--amber);font-size:26px;margin-bottom:8px;">
+              <i class="fa-solid fa-hotel"></i>
+            </div>
+            <div class="exp-date">PROJECT 02</div>
+            <div class="exp-title" style="font-size:14px;margin-top:4px;">Retro_pinball_game</div>
+            <div class="exp-desc" style="font-size:11.5px;margin-top:6px;">Retro_pinball_game from old</div>
+            <div class="exp-tags" style="margin-top:6px;">
+              <span class="exp-tag">SUPABASE</span>
+              <span class="exp-tag">SQL</span>
+            </div>
+          </a>
+        </article>
+        
+        <!-- PROJECT 03 -->
+        <article class="exp-card" style="padding:12px;display:flex;flex-direction:column;">
+          <a class="inter-card" href="assets/experiments/exp-07.html" target="_blank" rel="noopener">
+            <div style="width:100%;height:85px;border-radius:8px;background:linear-gradient(135deg,#d1fae5,#a7f3d0);display:flex;align-items:center;justify-content:center;color:var(--emerald);font-size:26px;margin-bottom:8px;">
+              <i class="fa-solid fa-graduation-cap"></i>
+            </div>
+            <div class="exp-date">PROJECT 03</div>
+            <div class="exp-title" style="font-size:14px;margin-top:4px;">Virtual_music_studio</div>
+            <div class="exp-desc" style="font-size:11.5px;margin-top:6px;">جرب جميع انواع الآلات الموسيقية وتعرف عليها</div>
+            <div class="exp-tags" style="margin-top:6px;">
+              <span class="exp-tag">CANVA</span>
+              <span class="exp-tag">AI</span>
+            </div>
+          </a>
+        </article>
+        
+        <!-- PROJECT 04 -->
+        <article class="exp-card" style="padding:12px;display:flex;flex-direction:column;">
+          <a class="inter-card" href="assets/experiments/exp-09.html" target="_blank" rel="noopener">
+            <div style="width:100%;height:85px;border-radius:8px;background:linear-gradient(135deg,#ede9fe,#ddd6fe);display:flex;align-items:center;justify-content:center;color:var(--violet);font-size:26px;margin-bottom:8px;">
+              <i class="fa-solid fa-film"></i>
+            </div>
+            <div class="exp-date">PROJECT 04 · VIDEO</div>
+            <div class="exp-title" style="font-size:14px;margin-top:4px;">Underwater_world_vr</div>
+            <div class="exp-desc" style="font-size:11.5px;margin-top:6px;">تجربة العيش للحظات تحت البحر</div>
+            <div class="exp-tags" style="margin-top:6px;">
+              <span class="exp-tag">VIDEO</span>
+              <span class="exp-tag">AI</span>
+            </div>
+          </a>
+        </article>
+        
+      </div>
+    </div>
+  </div>
+  <div class="face back"></div>
+</section>
+      <!-- ============================================
+           PAGE 5 — PROJECTS 2
+      ============================================= -->
+      <section class="book-page" data-index="5">
+        <div class="face front">
+          <div class="page-content">
+            <div class="page-title">حقيبة أعمالي</div>
+            <div class="page-subtitle">// selected digital projects · 05—08</div>
+            <div class="section-line"></div>
+            <div class="grid-2" style="height:calc(100% - 90px);">
+              <article class="exp-card" style="padding:12px;display:flex;flex-direction:column;">
+                <div style="width:100%;height:85px;border-radius:8px;background:linear-gradient(135deg,#dbeafe,#bfdbfe);display:flex;align-items:center;justify-content:center;color:var(--royal);font-size:26px;margin-bottom:8px;"><i class="fa-solid fa-laptop-code"></i></div>
+                <div class="exp-date">PROJECT 05</div>
+                <div class="exp-title" style="font-size:14px;margin-top:4px;">Digital Portfolio</div>
+                <div class="exp-desc" style="font-size:11.5px;margin-top:6px;">تصميم تجربة Portfolio تفاعلية بأسلوب كتاب ورقي.</div>
+                <div class="exp-tags" style="margin-top:6px;">
+                  <span class="exp-tag">HTML</span><span class="exp-tag">JS</span>
+                </div>
+              </article>
+              <article class="exp-card" style="padding:12px;display:flex;flex-direction:column;">
+                <div style="width:100%;height:85px;border-radius:8px;background:linear-gradient(135deg,#fef3c7,#fde68a);display:flex;align-items:center;justify-content:center;color:var(--amber);font-size:26px;margin-bottom:8px;"><i class="fa-solid fa-qrcode"></i></div>
+                <div class="exp-date">PROJECT 06</div>
+                <div class="exp-title" style="font-size:14px;margin-top:4px;">QR Digital Experience</div>
+                <div class="exp-desc" style="font-size:11.5px;margin-top:6px;">حلول تعتمد على QR للوصول إلى المحتوى.</div>
+                <div class="exp-tags" style="margin-top:6px;">
+                  <span class="exp-tag">QR</span><span class="exp-tag">WEB</span>
+                </div>
+              </article>
+              <article class="exp-card" style="padding:12px;display:flex;flex-direction:column;">
+                <div style="width:100%;height:85px;border-radius:8px;background:linear-gradient(135deg,#fce7f3,#fbcfe8);display:flex;align-items:center;justify-content:center;color:var(--rose);font-size:26px;margin-bottom:8px;"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                <div class="exp-date">PROJECT 07</div>
+                <div class="exp-title" style="font-size:14px;margin-top:4px;">AI Creative Campaign</div>
+                <div class="exp-desc" style="font-size:11.5px;margin-top:6px;">محتوى بصري وإبداعي بالذكاء الاصطناعي.</div>
+                <div class="exp-tags" style="margin-top:6px;">
+                  <span class="exp-tag">AI</span><span class="exp-tag">IMAGE</span>
+                </div>
+              </article>
+              <article class="exp-card" style="padding:12px;display:flex;flex-direction:column;">
+                <div style="width:100%;height:85px;border-radius:8px;background:linear-gradient(135deg,#cffafe,#a5f3fc);display:flex;align-items:center;justify-content:center;color:#0891b2;font-size:26px;margin-bottom:8px;"><i class="fa-solid fa-video"></i></div>
+                <div class="exp-date">PROJECT 08 · VIDEO</div>
+                <div class="exp-title" style="font-size:14px;margin-top:4px;">Visual Storytelling</div>
+                <div class="exp-desc" style="font-size:11.5px;margin-top:6px;">سرد بصري يجمع الفيديو مع AI.</div>
+                <div class="exp-tags" style="margin-top:6px;">
+                  <span class="exp-tag">VIDEO</span><span class="exp-tag">AI</span>
+                </div>
+              </article>
+            </div>
+          </div>
+        </div>
+        <div class="face back"></div>
+      </section>
+
+      <!-- ============================================
+           PAGE 6 — PROJECTS 3
+      ============================================= -->
+      <section class="book-page" data-index="6">
+        <div class="face front">
+          <div class="page-content">
+            <div class="page-title">حقيبة أعمالي</div>
+            <div class="page-subtitle">// selected digital projects · 09—12</div>
+            <div class="section-line"></div>
+            <div class="grid-2" style="height:calc(100% - 90px);">
+              <article class="exp-card" style="padding:12px;display:flex;flex-direction:column;">
+                <div style="width:100%;height:85px;border-radius:8px;background:linear-gradient(135deg,#dbeafe,#93c5fd);display:flex;align-items:center;justify-content:center;color:var(--royal);font-size:26px;margin-bottom:8px;"><i class="fa-solid fa-globe"></i></div>
+                <div class="exp-date">PROJECT 09</div>
+                <div class="exp-title" style="font-size:14px;margin-top:4px;">Web Application</div>
+                <div class="exp-desc" style="font-size:11.5px;margin-top:6px;">تطبيق ويب بواجهات تفاعلية.</div>
+                <div class="exp-tags" style="margin-top:6px;">
+                  <span class="exp-tag">PHP</span><span class="exp-tag">SQL</span>
+                </div>
+              </article>
+              <article class="exp-card" style="padding:12px;display:flex;flex-direction:column;">
+                <div style="width:100%;height:85px;border-radius:8px;background:linear-gradient(135deg,#d1fae5,#6ee7b7);display:flex;align-items:center;justify-content:center;color:#065f46;font-size:26px;margin-bottom:8px;"><i class="fa-solid fa-database"></i></div>
+                <div class="exp-date">PROJECT 10</div>
+                <div class="exp-title" style="font-size:14px;margin-top:4px;">Database Project</div>
+                <div class="exp-desc" style="font-size:11.5px;margin-top:6px;">تصميم وإدارة قواعد بيانات.</div>
+                <div class="exp-tags" style="margin-top:6px;">
+                  <span class="exp-tag">SQL</span><span class="exp-tag">ORACLE</span>
+                </div>
+              </article>
+              <article class="exp-card" style="padding:12px;display:flex;flex-direction:column;">
+                <div style="width:100%;height:85px;border-radius:8px;background:linear-gradient(135deg,#fce7f3,#f9a8d4);display:flex;align-items:center;justify-content:center;color:var(--rose);font-size:26px;margin-bottom:8px;"><i class="fa-solid fa-bullhorn"></i></div>
+                <div class="exp-date">PROJECT 11</div>
+                <div class="exp-title" style="font-size:14px;margin-top:4px;">Digital Marketing</div>
+                <div class="exp-desc" style="font-size:11.5px;margin-top:6px;">محتوى رقمي وحملات موجهة.</div>
+                <div class="exp-tags" style="margin-top:6px;">
+                  <span class="exp-tag">CONTENT</span>
+                </div>
+              </article>
+              <article class="exp-card" style="padding:12px;display:flex;flex-direction:column;">
+                <div style="width:100%;height:85px;border-radius:8px;background:linear-gradient(135deg,#ede9fe,#c4b5fd);display:flex;align-items:center;justify-content:center;color:var(--violet);font-size:26px;margin-bottom:8px;"><i class="fa-solid fa-city"></i></div>
+                <div class="exp-date">PROJECT 12</div>
+                <div class="exp-title" style="font-size:14px;margin-top:4px;">AI Future City</div>
+                <div class="exp-desc" style="font-size:11.5px;margin-top:6px;">مشروع إبداعي مستقبلي.</div>
+                <div class="exp-tags" style="margin-top:6px;">
+                  <span class="exp-tag">AI</span><span class="exp-tag">FUTURE</span>
+                </div>
+              </article>
+            </div>
+          </div>
+        </div>
+        <div class="face back"></div>
+      </section>
+
+      <!-- ============================================
+           PAGE 7 — INTERACTIVE EXPERIENCES (4)
+      ============================================= -->
+      <section class="book-page" data-index="7">
+        <div class="face front">
+          <div class="paper-lines"></div>
+          <div class="page-content">
+            <div class="page-title">تجارب تفاعلية</div>
+            <div class="page-subtitle">// interactive experiences · 04 projects</div>
+            <div class="section-line"></div>
+
+            <div class="pdf-intro" style="border-right-color:var(--amber);background:rgba(217,119,6,.06);">
+              مجموعة من التجارب التفاعلية التي صممتها بأساليب حديثة — انقر لاستكشاف المزيد.
+            </div>
+
+            <div class="interactive-grid">
+
+            <a class="inter-card" href="assets/experiments/exp-02.html" target="_blank" rel="noopener">
+                <span class="inter-badge">INTERACTIVE</span>
+                <div class="inter-icon"><i class="fa-solid fa-gamepad"></i></div>
+                <div class="inter-title">Be a Barista Game</div>
+                <div class="inter-desc">تجربة تفاعلية تعيش من خلالها سمهنة صانع  القهوة و المشروبات البارده. </div>
+                <div class="inter-tags">
+                  <span class="inter-tag">JS</span>
+                  <span class="inter-tag">CANVAS</span>
+                  <span class="inter-tag">UI</span>
+                </div>
+              </a>
+
+            <a class="inter-card" href="assets/experiments/exp-01.html" target="_blank" rel="noopener">
+                <span class="inter-badge">3D</span>
+                <div class="inter-icon"><i class="fa-solid fa-cube"></i></div>
+                <div class="inter-title">Computer in 1999`s</div>
+                <div class="inter-desc">محاكاة الحاسوب في عام 1999 لمعرفة أهم التطورات التي وصل الها حاليا</div>
+                <div class="inter-tags">
+                  <span class="inter-tag">cmd prompt</span>
+                  <span class="inter-tag">Win XP</span>
+				  <span class="inter-tag">BOOS F10</span>
+
+                </div>
+              </a>
+
+                <a class="inter-card" href="assets/experiments/exp-03.html" target="_blank" rel="noopener">
+                <span class="inter-badge">Maza Game by Arena</span>
+                <div class="inter-icon"><i class="fa-solid fa-chart-pie"></i></div>
+                <div class="inter-title">Maza Game (5 Levels)</div>
+                <div class="inter-desc">لعبة تفاعلية اربح واحصل على نقاط  لتنتقل للمرحلة التالية</div>
+                <div class="inter-tags">
+                  <span class="inter-tag">CHART.JS</span>
+                  <span class="inter-tag">Type JS</span>
+                </div>
+              </a>
+
+            <a class="inter-card" href="assets/experiments/exp-04.html" target="_blank" rel="noopener">
+                <span class="inter-badge">قانون أوم  في الكهرباء</span>
+                <div class="inter-icon"><i class="fa-solid fa-circle-question"></i></div>
+                <div class="inter-title">قانون أوم للكهرباء</div>
+                <div class="inter-desc">محاكاة قانون أوم تحكم بالقيم واحصل على نتائج فوريه </div>
+                <div class="inter-tags">
+                  <span class="inter-tag">JS</span>
+                  <span class="inter-tag">UX</span>
+                </div>
+              </a>
+
+            </div>
+          </div>
+        </div>
+        <div class="face back"></div>
+      </section>
+
+      <!-- ============================================
+           PAGE 8 — AI IMAGES (6 with lightbox)
+      ============================================= -->
+      <section class="book-page" data-index="8">
+        <div class="face front">
+          <div class="page-content">
+            <div class="page-title">صور مولّدة بالذكاء</div>
+            <div class="page-subtitle">// AI-generated visuals · 06 images</div>
+            <div class="section-line"></div>
+
+            <div class="pdf-intro" style="border-right-color:var(--violet);background:rgba(109,40,217,.06);">
+              مجموعة من الصور الفنية المولّدة بالذكاء الاصطناعي — <strong>انقر على أي صورة لتكبيرها</strong>.
+            </div>
+
+            <div class="ai-grid">
+
+              <div class="ai-thumb" data-img="assets/ai/ai-01.jpg" data-caption="AI ART · 01">
+                <span class="ai-num">01</span>
+                <img src="assets/ai/ai-01.jpg" alt="AI 01"
+                     onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22300%22 height=%22200%22><defs><linearGradient id=%22g1%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22><stop offset=%220%22 stop-color=%22%236d28d9%22/><stop offset=%221%22 stop-color=%22%231d4ed8%22/></linearGradient></defs><rect width=%22100%25%22 height=%22100%25%22 fill=%22url(%23g1)%22/><circle cx=%22150%22 cy=%22100%22 r=%2260%22 fill=%22rgba(255,255,255,.15)%22/><text x=%22150%22 y=%22110%22 font-family=%22monospace%22 font-size=%2230%22 fill=%22white%22 text-anchor=%22middle%22>AI 01</text></svg>';">
+              </div>
+
+              <div class="ai-thumb" data-img="assets/ai/ai-02.jpg" data-caption="AI ART · 02">
+                <span class="ai-num">02</span>
+                <img src="assets/ai/ai-02.jpg" alt="AI 02"
+                     onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22300%22 height=%22200%22><defs><linearGradient id=%22g2%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22><stop offset=%220%22 stop-color=%22%23be123c%22/><stop offset=%221%22 stop-color=%22%23d97706%22/></linearGradient></defs><rect width=%22100%25%22 height=%22100%25%22 fill=%22url(%23g2)%22/><circle cx=%22150%22 cy=%22100%22 r=%2260%22 fill=%22rgba(255,255,255,.15)%22/><text x=%22150%22 y=%22110%22 font-family=%22monospace%22 font-size=%2230%22 fill=%22white%22 text-anchor=%22middle%22>AI 02</text></svg>';">
+              </div>
+
+              <div class="ai-thumb" data-img="assets/ai/ai-03.jpg" data-caption="AI ART · 03">
+                <span class="ai-num">03</span>
+                <img src="assets/ai/ai-03.jpg" alt="AI 03"
+                     onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22300%22 height=%22200%22><defs><linearGradient id=%22g3%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22><stop offset=%220%22 stop-color=%22%23059669%22/><stop offset=%221%22 stop-color=%22%230891b2%22/></linearGradient></defs><rect width=%22100%25%22 height=%22100%25%22 fill=%22url(%23g3)%22/><circle cx=%22150%22 cy=%22100%22 r=%2260%22 fill=%22rgba(255,255,255,.15)%22/><text x=%22150%22 y=%22110%22 font-family=%22monospace%22 font-size=%2230%22 fill=%22white%22 text-anchor=%22middle%22>AI 03</text></svg>';">
+              </div>
+
+              <div class="ai-thumb" data-img="assets/ai/ai-04.jpg" data-caption="AI ART · 04">
+                <span class="ai-num">04</span>
+                <img src="assets/ai/ai-04.jpg" alt="AI 04"
+                     onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22300%22 height=%22200%22><defs><linearGradient id=%22g4%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22><stop offset=%220%22 stop-color=%22%230b2545%22/><stop offset=%221%22 stop-color=%22%236d28d9%22/></linearGradient></defs><rect width=%22100%25%22 height=%22100%25%22 fill=%22url(%23g4)%22/><circle cx=%22150%22 cy=%22100%22 r=%2260%22 fill=%22rgba(255,255,255,.15)%22/><text x=%22150%22 y=%22110%22 font-family=%22monospace%22 font-size=%2230%22 fill=%22white%22 text-anchor=%22middle%22>AI 04</text></svg>';">
+              </div>
+
+              <div class="ai-thumb" data-img="assets/ai/ai-05.jpg" data-caption="AI ART · 05">
+                <span class="ai-num">05</span>
+                <img src="assets/ai/ai-05.jpg" alt="AI 05"
+                     onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22300%22 height=%22200%22><defs><linearGradient id=%22g5%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22><stop offset=%220%22 stop-color=%22%23f59e0b%22/><stop offset=%221%22 stop-color=%22%23be123c%22/></linearGradient></defs><rect width=%22100%25%22 height=%22100%25%22 fill=%22url(%23g5)%22/><circle cx=%22150%22 cy=%22100%22 r=%2260%22 fill=%22rgba(255,255,255,.15)%22/><text x=%22150%22 y=%22110%22 font-family=%22monospace%22 font-size=%2230%22 fill=%22white%22 text-anchor=%22middle%22>AI 05</text></svg>';">
+              </div>
+
+              <div class="ai-thumb" data-img="assets/ai/ai-06.jpg" data-caption="AI ART · 06">
+                <span class="ai-num">06</span>
+                <img src="assets/ai/ai-06.jpg" alt="AI 06"
+                     onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22300%22 height=%22200%22><defs><linearGradient id=%22g6%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22><stop offset=%220%22 stop-color=%22%230891b2%22/><stop offset=%221%22 stop-color=%22%236d28d9%22/></linearGradient></defs><rect width=%22100%25%22 height=%22100%25%22 fill=%22url(%23g6)%22/><circle cx=%22150%22 cy=%22100%22 r=%2260%22 fill=%22rgba(255,255,255,.15)%22/><text x=%22150%22 y=%22110%22 font-family=%22monospace%22 font-size=%2230%22 fill=%22white%22 text-anchor=%22middle%22>AI 06</text></svg>';">
+              </div>
+
+            </div>
+          </div>
+        </div>
+        <div class="face back"></div>
+      </section>
+
+      <!-- ============================================
+           PAGE 9 — VIDEOS (6)
+      ============================================= -->
+      <section class="book-page" data-index="9">
+        <div class="face front">
+          <div class="page-content">
+            <div class="page-title">فيديوهات</div>
+            <div class="page-subtitle">// video gallery · 06 videos</div>
+            <div class="section-line"></div>
+
+            <div class="pdf-intro" style="border-right-color:var(--rose);background:rgba(190,18,60,.06);">
+              مجموعة من الفيديوهات — كل فيديو يعمل مباشرة داخل البطاقة بحجم العرض الكامل.
+            </div>
+
+            <div class="video-grid">
+
+              <div class="video-card">
+                <span class="video-num">VIDEO 01</span>
+                <video controls playsinline preload="metadata">
+                  <source src="assets/videos/video-01.mp4" type="video/mp4">
+                </video>
+              </div>
+
+              <div class="video-card">
+                <span class="video-num">VIDEO 02</span>
+                <video controls playsinline preload="metadata">
+                  <source src="assets/videos/video-02.mp4" type="video/mp4">
+                </video>
+              </div>
+
+              <div class="video-card">
+                <span class="video-num">VIDEO 03</span>
+                <video controls playsinline preload="metadata">
+                  <source src="assets/videos/video-03.mp4" type="video/mp4">
+                </video>
+              </div>
+
+              <div class="video-card">
+                <span class="video-num">VIDEO 04</span>
+                <video controls playsinline preload="metadata">
+                  <source src="assets/videos/video-04.mp4" type="video/mp4">
+                </video>
+              </div>
+
+              <div class="video-card">
+                <span class="video-num">VIDEO 05</span>
+                <video controls playsinline preload="metadata">
+                  <source src="assets/videos/video-05.mp4" type="video/mp4">
+                </video>
+              </div>
+
+              <div class="video-card">
+                <span class="video-num">VIDEO 06</span>
+                <video controls playsinline preload="metadata">
+                  <source src="assets/videos/video-06.mp4" type="video/mp4">
+                </video>
+              </div>
+
+            </div>
+          </div>
+        </div>
+        <div class="face back"></div>
+      </section>
+
+      <!-- ============================================
+           PAGE 10 — PDF FILES (2)
+      ============================================= -->
+      <section class="book-page" data-index="10">
+        <div class="face front">
+          <div class="paper-lines"></div>
+          <div class="page-content">
+            <div class="page-title">ملفاتي · PDF</div>
+            <div class="page-subtitle">// downloadable documents · 02 files</div>
+            <div class="section-line"></div>
+
+            <div class="pdf-intro">
+              ملفان جاهزان للتحميل — انقر أي بطاقة لفتح أو تحميل الملف مباشرة.
+            </div>
+
+            <div class="pdf-grid">
+
+              <a class="pdf-card"
+                 href="assets/pdf/document-01.pdf"
+                 target="_blank" download>
+                <div class="pdf-icon r">
+                  <i class="fa-solid fa-file-pdf"></i>
+                </div>
+                <div class="pdf-info">
+                  <div class="pdf-name">عالم تيما للاطفال</div>
+                  <div class="pdf-meta">
+                    <span><i class="fa-solid fa-file"></i> صفحات متعددة ملونه</span>
+                    <span><i class="fa-solid fa-download"></i>1.2 MB</span>
+                  </div>
+                </div>
+                <div class="pdf-dl"><i class="fa-solid fa-arrow-down"></i></div>
+              </a>
+
+              <a class="pdf-card"
+                 href="assets/pdf/document-02.pdf"
+                 target="_blank" download>
+                <div class="pdf-icon b">
+                  <i class="fa-solid fa-file-pdf"></i>
+                </div>
+                <div class="pdf-info">
+                  <div class="pdf-name">مغامرات كنان ويمان في عالم الحروف</div>
+                  <div class="pdf-meta">
+                    <span><i class="fa-solid fa-file"></i>عالم الحروف و الارقام بقصة قصيرة للاطفال</span>
+                    <span><i class="fa-solid fa-download"></i>3.1 MB</span>
+                  </div>
+                </div>
+                <div class="pdf-dl"><i class="fa-solid fa-arrow-down"></i></div>
+              </a>
+
+            </div>
+          </div>
+        </div>
+        <div class="face back"></div>
+      </section>
+
+      <!-- ============================================
+           PAGE 11 — AUDIO / MP3 (2)
+      ============================================= -->
+      <section class="book-page" data-index="11">
+        <div class="face front">
+          <div class="page-content">
+            <div class="page-title">AUDIO · MP3</div>
+            <div class="page-subtitle">// sound · voice · digital storytelling</div>
+            <div class="section-line"></div>
+
+            <div class="audio-intro">
+              تسجيلان صوتيان بتصميم مستوحى من مشغلات الأقراص القديمة.
+              اضغطي Play وسيبدأ القرص بالدوران.
+            </div>
+
+            <div class="audio-grid">
+              <div class="audio-box">
+                <div class="cd-area"><div class="cd-disc" id="cd1"></div></div>
+                <div>
+                  <div class="audio-title">AUDIO TRACK 01</div>
+                  <div class="audio-meta">Digital Story · Recording 01</div>
+                </div>
+                <div class="audio-controls">
+                  <audio class="audio-file" id="audio1" preload="metadata">
+                    <source src="assets/audio/audio-01.mp3" type="audio/mpeg">
+                  </audio>
+                  <div class="audio-buttons">
+                    <button class="audio-play" data-audio="audio1" data-cd="cd1">
+                      <i class="fa-solid fa-play"></i>
+                    </button>
+                  </div>
+                  <input type="range" class="audio-progress" data-progress="audio1" value="0" min="0" max="100">
+                  <div class="audio-time">
+                    <span data-current="audio1">00:00</span>
+                    <span data-duration="audio1">00:00</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="audio-box">
+                <div class="cd-area"><div class="cd-disc" id="cd2"></div></div>
+                <div>
+                  <div class="audio-title">AUDIO TRACK 02</div>
+                  <div class="audio-meta">Digital Story · Recording 02</div>
+                </div>
+                <div class="audio-controls">
+                  <audio class="audio-file" id="audio2" preload="metadata">
+                    <source src="assets/audio/audio-02.mp3" type="audio/mpeg">
+                  </audio>
+                  <div class="audio-buttons">
+                    <button class="audio-play" data-audio="audio2" data-cd="cd2">
+                      <i class="fa-solid fa-play"></i>
+                    </button>
+                  </div>
+                  <input type="range" class="audio-progress" data-progress="audio2" value="0" min="0" max="100">
+                  <div class="audio-time">
+                    <span data-current="audio2">00:00</span>
+                    <span data-duration="audio2">00:00</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="face back"></div>
+      </section>
+
+      <!-- ============================================
+           PAGE 12 — LINKS (2 with preview)
+      ============================================= -->
+      <section class="book-page" data-index="12">
+        <div class="face front">
+          <div class="paper-lines"></div>
+          <div class="page-content">
+            <div class="page-title">روابط مهمة</div>
+            <div class="page-subtitle">// live preview · 02 links</div>
+            <div class="section-line"></div>
+
+            <div class="pdf-intro" style="border-right-color:var(--violet);background:rgba(109,40,217,.06);">
+              مشروعان مباشران يمكنك معاينتهما الآن — انقر "فتح الموقع" للتفاعل الكامل.
+            </div>
+
+            <div class="links-grid">
+
+              <!-- LINK 01 -->
+              <div class="link-card">
+                <div class="link-preview">
+                  <span class="link-preview-badge">LIVE · 01</span>
+                  <div class="link-preview-fallback">
+                    <i class="fa-solid fa-globe"></i>
+                    PREVIEW LOADING...
+                  </div>
+                  <iframe
+                    data-src="https://tamara126enad.github.io/project-one/"
+                    loading="lazy"
+                    title="Link 01 Preview"></iframe>
+                </div>
+                <div class="link-body">
+                  <div class="link-icon v"><i class="fa-solid fa-rocket"></i></div>
+                  <div class="link-title">مشروعي الأول · Web App</div>
+                  <div class="link-url">https://github.com/tamara126enad</div>
+                  <div class="link-desc">
+                    تطبيقات ويب تفاعلية تعرض تجربة رقمية كاملة مع واجهة حديثة.
+                  </div>
+                  <div class="link-actions">
+                    <a class="link-btn primary"
+                       href="https://github.com/tamara126enad"
+                       target="_blank" rel="noopener">
+                      <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                      فتح الموقع
+                    </a>
+                    <button class="link-btn ghost" data-open="https://github.com/tamara126enad">
+                      <i class="fa-solid fa-expand"></i>
+                      معاينة
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- LINK 02 -->
+              <div class="link-card">
+                <div class="link-preview">
+                  <span class="link-preview-badge">LIVE · 02</span>
+                  <div class="link-preview-fallback">
+                    <i class="fa-solid fa-globe"></i>
+                    PREVIEW LOADING...
+                  </div>
+                  <iframe
+                    data-src="https://tamara126enad.github.io/interview-coach/"
+                    loading="lazy"
+                    title="Link 02 Preview"></iframe>
+                </div>
+                <div class="link-body">
+                  <div class="link-icon b"><i class="fa-solid fa-layer-group"></i></div>
+                  <div class="link-title">مشروعي الثاني · Interview Coach </div>
+                  <div class="link-url">tamara126enad.github.io/project-two</div>
+                  <div class="link-desc">
+                    استعد لمقابلتك بكل ثقة مع مدرب المقابلاب
+                  </div>
+                  <div class="link-actions">
+                    <a class="link-btn primary"
+                       href="https://tamara126enad.github.io/interview-coach/"
+                       target="_blank" rel="noopener">
+                      <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                      فتح الموقع
+                    </a>
+                    <button class="link-btn ghost" data-open="https://tamara126enad.github.io/interview-coach/">
+                      <i class="fa-solid fa-expand"></i>
+                      معاينة
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+        <div class="face back"></div>
+      </section>
+
+      <!-- ============================================
+           PAGE 13 — FEEDBACK
+      ============================================= -->
+      <section class="book-page" data-index="13">
+        <div class="face front">
+          <div class="paper-lines"></div>
+          <div class="page-content">
+            <div class="fb-page">
+              <div class="page-title">اكتب ملاحظتك · شاركني رأيك</div>
+              <div class="page-subtitle">// feedback form → direct to my inbox</div>
+              <div class="section-line"></div>
+
+              <div class="fb-intro">
+                رأيك يهمني! اكتب ملاحظتك أو مشاركتك وسيصلني مباشرة عبر البريد الإلكتروني.
+              </div>
+
+              <form class="fb-form" id="fbForm" novalidate>
+                <div class="fb-field">
+                  <label for="fbName"><i class="fa-solid fa-user"></i>الاسم</label>
+                  <input type="text" id="fbName" placeholder="اسمك الكريم..." required>
+                </div>
+
+                <div class="fb-field">
+                  <label for="fbEmail"><i class="fa-solid fa-envelope violet"></i>البريد</label>
+                  <input type="email" id="fbEmail" placeholder="example@mail.com" required>
+                </div>
+
+                <div class="fb-field full">
+                  <label for="fbSubject"><i class="fa-solid fa-tag amber"></i>الموضوع</label>
+                  <input type="text" id="fbSubject" placeholder="عنوان رسالتك...">
+                </div>
+
+                <div class="fb-field full">
+                  <label for="fbMessage"><i class="fa-solid fa-comment-dots green"></i>ملاحظتك</label>
+                  <textarea id="fbMessage" placeholder="اكتب ملاحظتك هنا..." required></textarea>
+                </div>
+
+                
+
+                <div class="fb-submit">
+                  <span class="fb-status" id="fbStatus">✓ جاهز للإرسال</span>
+                  <button type="submit" class="fb-btn">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    إرسال الملاحظة
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+        <div class="face back"></div>
+      </section>
+
+      <!-- ============================================
+           PAGE 14 — QR
+      ============================================= -->
+      <section class="book-page" data-index="14">
+        <div class="face front">
+          <div class="paper-lines"></div>
+          <div class="page-content" style="padding:20px 34px;">
+            <div class="qr-page">
+              <div class="qr-eyebrow">
+                <span class="dot"></span>
+                SCAN · CONNECT · EXPLORE
+              </div>
+              <div class="qr-title-big">افتح عالمي الرقمي</div>
+              <div class="qr-subtitle-small">امسح الكود للوصول إلى أعمالي وروابط التواصل</div>
+
+              <div id="qrcode"></div>
+
+              <div class="qr-social">
+                <a href="https://github.com/tamara126enad" target="_blank" aria-label="GitHub">
+                  <i class="fa-brands fa-github"></i>
+                </a>
+                <a href="mailto:tamara.alshbat@example.com" aria-label="Email">
+                  <i class="fa-solid fa-envelope"></i>
+                </a>
+                <a href="https://www.linkedin.com" target="_blank" aria-label="LinkedIn">
+                  <i class="fa-brands fa-linkedin-in"></i>
+                </a>
+              </div>
+
+              <div class="qr-caption">TAMARA · DIGITAL PORTFOLIO</div>
+            </div>
+          </div>
+        </div>
+        <div class="face back"></div>
+      </section>
+
+      <!-- ============================================
+           PAGE 15 — THANK YOU
+      ============================================= -->
+      <section class="book-page" data-index="15">
+        <div class="face front">
+          <div class="back-cover">
+            <div class="thank-you">Thank You</div>
+            <div class="thank-ar">شكرًا لزيارتك</div>
+            <div class="back-deco">
+              <span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <div class="back-small">KEEP CREATING · KEEP LEARNING · KEEP BUILDING</div>
+            <div class="back-signature">— Tamara</div>
+          </div>
+        </div>
+        <div class="face back">
+          <div style="height:100%;background:linear-gradient(180deg,#0b2545,#13315c);display:flex;flex-direction:column;align-items:center;justify-content:center;color:rgba(255,255,255,.65);gap:14px;font-family:'Courier Prime',monospace;font-size:13px;font-weight:700;letter-spacing:3px;">
+            <div style="font-family:'Alex Brush',cursive;font-size:60px;color:#fff;letter-spacing:0;">Tamara</div>
+            <div style="width:70px;height:2px;background:linear-gradient(90deg,transparent,#d97706,transparent);"></div>
+            <div>DIGITAL PORTFOLIO</div>
+            <div style="font-size:10px;letter-spacing:5px;opacity:.7;">© 2026 · AQABA · JORDAN</div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- WIRES -->
+    <div class="wires" aria-hidden="true">
+      <svg viewBox="0 0 44 580" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="wireGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#e2e8f0"/>
+            <stop offset=".5" stop-color="#94a3b8"/>
+            <stop offset="1" stop-color="#475569"/>
+          </linearGradient>
+          <filter id="wireShadow" x="-50%" y="-50%" width="200%" height="200%">
+            <feDropShadow dx="-1" dy="1" stdDeviation="1.2" flood-color="#000" flood-opacity=".55"/>
+          </filter>
+        </defs>
+        <g stroke="url(#wireGrad)" stroke-width="3.2" fill="none" stroke-linecap="round" filter="url(#wireShadow)">
+          <path d="M0 25 Q38 25 38 34 Q38 43 0 43"/>
+          <path d="M0 66 Q38 66 38 75 Q38 84 0 84"/>
+          <path d="M0 107 Q38 107 38 116 Q38 125 0 125"/>
+          <path d="M0 148 Q38 148 38 157 Q38 166 0 166"/>
+          <path d="M0 189 Q38 189 38 198 Q38 207 0 207"/>
+          <path d="M0 230 Q38 230 38 239 Q38 248 0 248"/>
+          <path d="M0 271 Q38 271 38 280 Q38 289 0 289"/>
+          <path d="M0 312 Q38 312 38 321 Q38 330 0 330"/>
+          <path d="M0 353 Q38 353 38 362 Q38 371 0 371"/>
+          <path d="M0 394 Q38 394 38 403 Q38 412 0 412"/>
+          <path d="M0 435 Q38 435 38 444 Q38 453 0 453"/>
+          <path d="M0 476 Q38 476 38 485 Q38 494 0 494"/>
+          <path d="M0 517 Q38 517 38 526 Q38 535 0 535"/>
+          <path d="M0 558 Q38 558 38 567 Q38 576 0 576"/>
+        </g>
+        <g fill="#0f172a" opacity=".7">
+          <ellipse cx="2" cy="34" rx="3.2" ry="3.8"/>
+          <ellipse cx="2" cy="75" rx="3.2" ry="3.8"/>
+          <ellipse cx="2" cy="116" rx="3.2" ry="3.8"/>
+          <ellipse cx="2" cy="157" rx="3.2" ry="3.8"/>
+          <ellipse cx="2" cy="198" rx="3.2" ry="3.8"/>
+          <ellipse cx="2" cy="239" rx="3.2" ry="3.8"/>
+          <ellipse cx="2" cy="280" rx="3.2" ry="3.8"/>
+          <ellipse cx="2" cy="321" rx="3.2" ry="3.8"/>
+          <ellipse cx="2" cy="362" rx="3.2" ry="3.8"/>
+          <ellipse cx="2" cy="403" rx="3.2" ry="3.8"/>
+          <ellipse cx="2" cy="444" rx="3.2" ry="3.8"/>
+          <ellipse cx="2" cy="485" rx="3.2" ry="3.8"/>
+          <ellipse cx="2" cy="526" rx="3.2" ry="3.8"/>
+          <ellipse cx="2" cy="567" rx="3.2" ry="3.8"/>
+        </g>
+      </svg>
+    </div>
+
+    <div class="paper-stack" aria-hidden="true">
+      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    </div>
+
+    <!-- BOOKMARKS -->
+    <div class="bookmarks">
+      <button class="bm bm-cover" data-page="0"><i class="fa-solid fa-book-open"></i>الغلاف</button>
+      <button class="bm bm-about" data-page="1"><i class="fa-solid fa-user"></i>عني</button>
+      <button class="bm bm-edu" data-page="2"><i class="fa-solid fa-graduation-cap"></i>التعليم</button>
+      <button class="bm bm-exp" data-page="3"><i class="fa-solid fa-briefcase"></i>الخبرات</button>
+      <button class="bm bm-proj" data-page="4"><i class="fa-solid fa-folder-open"></i>أعمالي</button>
+      <button class="bm bm-inter" data-page="7"><i class="fa-solid fa-gamepad"></i>تفاعلية</button>
+      <button class="bm bm-ai" data-page="8"><i class="fa-solid fa-image"></i>صور AI</button>
+      <button class="bm bm-video" data-page="9"><i class="fa-solid fa-video"></i>فيديو</button>
+      <button class="bm bm-pdf" data-page="10"><i class="fa-solid fa-file-pdf"></i>PDF</button>
+      <button class="bm bm-audio" data-page="11"><i class="fa-solid fa-headphones"></i>MP3</button>
+      <button class="bm bm-links" data-page="12"><i class="fa-solid fa-link"></i>روابط</button>
+      <button class="bm bm-fb" data-page="13"><i class="fa-solid fa-comment-dots"></i>رأيك</button>
+      <button class="bm bm-qr" data-page="14"><i class="fa-solid fa-qrcode"></i>QR</button>
+    </div>
+
+    <!-- TURN BUTTONS -->
+    <button class="turn-btn turn-next" id="nextBtn" aria-label="Next">
+      <span class="turn-label">التالي</span>
+      <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="foldNext" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#1d4ed8"/>
+            <stop offset="1" stop-color="#6d28d9"/>
+          </linearGradient>
+          <linearGradient id="foldNextBack" x1="0" y1="1" x2="1" y2="0">
+            <stop offset="0" stop-color="#dbeafe"/>
+            <stop offset="1" stop-color="#bfdbfe"/>
+          </linearGradient>
+        </defs>
+        <path d="M4 4 L4 56 L56 56 Z" fill="url(#foldNextBack)" stroke="rgba(0,0,0,.35)" stroke-width="1"/>
+        <path d="M4 4 L56 56 L50 50 L10 10 Z" fill="url(#foldNext)" opacity=".98"/>
+        <path d="M4 4 L56 56" stroke="rgba(255,255,255,.75)" stroke-width="1.8" fill="none"/>
+        <path d="M14 20 L26 20 M14 26 L30 26 M14 32 L34 32" stroke="white" stroke-width="2.2" stroke-linecap="round" opacity=".95"/>
+        <path d="M22 40 L34 40 M26 46 L36 46" stroke="white" stroke-width="2.2" stroke-linecap="round" opacity=".6"/>
+      </svg>
+    </button>
+
+    <button class="turn-btn turn-prev" id="prevBtn" aria-label="Prev">
+      <span class="turn-label">السابق</span>
+      <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="foldPrev" x1="1" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#be123c"/>
+            <stop offset="1" stop-color="#d97706"/>
+          </linearGradient>
+          <linearGradient id="foldPrevBack" x1="1" y1="1" x2="0" y2="0">
+            <stop offset="0" stop-color="#fef3c7"/>
+            <stop offset="1" stop-color="#fde68a"/>
+          </linearGradient>
+        </defs>
+        <path d="M56 4 L56 56 L4 56 Z" fill="url(#foldPrevBack)" stroke="rgba(0,0,0,.35)" stroke-width="1"/>
+        <path d="M56 4 L4 56 L10 50 L50 10 Z" fill="url(#foldPrev)" opacity=".98"/>
+        <path d="M56 4 L4 56" stroke="rgba(255,255,255,.75)" stroke-width="1.8" fill="none"/>
+        <path d="M46 20 L34 20 M46 26 L30 26 M46 32 L26 32" stroke="white" stroke-width="2.2" stroke-linecap="round" opacity=".95"/>
+        <path d="M38 40 L26 40 M34 46 L24 46" stroke="white" stroke-width="2.2" stroke-linecap="round" opacity=".6"/>
+      </svg>
+    </button>
+
+    <div class="counter" id="counter">
+      <span class="cur">01</span> / <span class="tot">16</span>
+    </div>
+
+  </div>
+</div>
+
+<div class="hint">DRAG · SCROLL · ARROWS <i class="fa-solid fa-computer-mouse"></i></div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox">
+  <button class="lightbox-close" id="lbClose" aria-label="Close">
+    <i class="fa-solid fa-xmark"></i>
+  </button>
+  <img id="lbImg" src="" alt="">
+  <div class="lightbox-caption" id="lbCaption"></div>
+</div>
+
+<script>
+/* =========================================================
+   0. PARTICLES
+========================================================= */
+(function(){
+  const p = document.getElementById('particles');
+  for(let i=0;i<26;i++){
+    const s = document.createElement('span');
+    s.style.left = Math.random()*100 + '%';
+    s.style.animationDuration = (8 + Math.random()*10) + 's';
+    s.style.animationDelay = (-Math.random()*15) + 's';
+    const sz = 1 + Math.random()*2.5;
+    s.style.width = sz+'px';
+    s.style.height = sz+'px';
+    const colors = ['#60a5fa','#a78bfa','#34d399','#fbbf24','#fb7185'];
+    s.style.background = colors[Math.floor(Math.random()*colors.length)];
+    s.style.boxShadow = '0 0 10px currentColor';
+    p.appendChild(s);
+  }
+})();
+
+/* =========================================================
+   1. AUDIO ENGINE
+========================================================= */
+let actx = null;
+function ensureAudio(){
+  if(!actx){
+    try{ actx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}
+  }
+  if(actx && actx.state === 'suspended') actx.resume();
+  return actx;
+}
+function playFlip(){
+  const ctx = ensureAudio(); if(!ctx) return;
+  const t = ctx.currentTime;
+  const bufSize = Math.floor(ctx.sampleRate * 0.4);
+  const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for(let i=0;i<bufSize;i++){
+    const env = Math.exp(-i/(ctx.sampleRate*0.07));
+    data[i] = (Math.random()*2-1) * env;
+  }
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  const bp = ctx.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.setValueAtTime(2600, t);
+  bp.frequency.exponentialRampToValueAtTime(600, t+0.34);
+  bp.Q.value = 1.5;
+  const g1 = ctx.createGain();
+  g1.gain.setValueAtTime(0.0001, t);
+  g1.gain.exponentialRampToValueAtTime(0.18, t+0.02);
+  g1.gain.exponentialRampToValueAtTime(0.0001, t+0.36);
+  src.connect(bp); bp.connect(g1); g1.connect(ctx.destination);
+  src.start(t); src.stop(t+0.4);
+
+  const osc = ctx.createOscillator();
+  const g2 = ctx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(180, t);
+  osc.frequency.exponentialRampToValueAtTime(60, t+0.24);
+  g2.gain.setValueAtTime(0.0001, t);
+  g2.gain.exponentialRampToValueAtTime(0.12, t+0.025);
+  g2.gain.exponentialRampToValueAtTime(0.0001, t+0.3);
+  osc.connect(g2); g2.connect(ctx.destination);
+  osc.start(t); osc.stop(t+0.32);
+}
+function playFold(){
+  const ctx = ensureAudio(); if(!ctx) return;
+  const t = ctx.currentTime;
+  const bufSize = Math.floor(ctx.sampleRate * 0.14);
+  const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for(let i=0;i<bufSize;i++){
+    const env = Math.exp(-i/(ctx.sampleRate*0.022));
+    data[i] = (Math.random()*2-1) * env;
+  }
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  const hp = ctx.createBiquadFilter();
+  hp.type = 'highpass';
+  hp.frequency.value = 1800;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.09, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t+0.13);
+  src.connect(hp); hp.connect(g); g.connect(ctx.destination);
+  src.start(t); src.stop(t+0.14);
+}
+function playMorph(){
+  const ctx = ensureAudio(); if(!ctx) return;
+  const t = ctx.currentTime;
+  [880, 1320].forEach((f, i)=>{
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(f, t);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.06/(i+1), t+0.03);
+    g.gain.exponentialRampToValueAtTime(0.0001, t+0.5);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(t); o.stop(t+0.55);
+  });
+}
+
+/* =========================================================
+   2. BOOK ENGINE
+========================================================= */
+const pages = Array.from(document.querySelectorAll('.book-page'));
+const tabs = Array.from(document.querySelectorAll('.bm'));
+const counter = document.getElementById('counter');
+const nextBtn = document.getElementById('nextBtn');
+const prevBtn = document.getElementById('prevBtn');
+const scene = document.getElementById('scene');
+const book = document.getElementById('book');
+
+const TOTAL = pages.length;
+let current = 0;
+let morphing = false;
+
+function updateStack(){
+  pages.forEach((p,i)=>{
+    if(i < current){
+      p.classList.add('flipped');
+      p.style.zIndex = 100 + i;
+    } else {
+      p.classList.remove('flipped');
+      p.style.zIndex = 1000 + (TOTAL - i);
+    }
+  });
+  updateTabs();
+  updateNav();
+  updateCounter();
+  lazyLoadLinkPreviews();
+}
+
+function updateNav(){
+  nextBtn.classList.toggle('disabled', current >= TOTAL);
+  prevBtn.classList.toggle('disabled', current <= 0);
+}
+
+function updateCounter(){
+  const cur = String(Math.min(current+1, TOTAL)).padStart(2,'0');
+  const tot = String(TOTAL).padStart(2,'0');
+  counter.innerHTML = `<span class="cur">${cur}</span> / <span class="tot">${tot}</span>`;
+}
+
+function updateTabs(){
+  tabs.forEach(t=>{
+    const target = Number(t.dataset.page);
+    t.classList.remove('active');
+    if(target === current) t.classList.add('active');
+    if(target === 4 && current>=4 && current<=6) t.classList.add('active');
+  });
+}
+
+function lazyLoadLinkPreviews(){
+  // صفحة الروابط هي index 12
+  if(current === 12){
+    document.querySelectorAll('.link-preview iframe[data-src]').forEach(f=>{
+      if(!f.src){
+        f.src = f.dataset.src;
+        f.addEventListener('load', ()=>{
+          const fb = f.parentElement.querySelector('.link-preview-fallback');
+          if(fb) fb.style.display = 'none';
+        });
+      }
+    });
+  }
+}
+
+function morphReset(){
+  if(morphing) return;
+  morphing = true;
+  playMorph();
+  document.body.style.cursor = 'progress';
+  scene.style.transition = 'transform .9s cubic-bezier(.68,-.4,.27,1.4)';
+  scene.style.transform = 'translateX(0) translateY(0) rotateY(0deg) rotateX(0deg) scale(1.08)';
+  setTimeout(()=>{
+    scene.style.transform = 'translateX(0) translateY(0) rotateY(0deg) rotateX(0deg) scale(1)';
+  }, 420);
+  book.style.transition = 'opacity .4s ease';
+  book.style.opacity = '0.85';
+  setTimeout(()=>{ book.style.opacity = '1'; }, 420);
+  mx = 0; my = 0; tX = 0; tY = 0;
+  setTimeout(()=>{
+    scene.style.transition = 'transform .35s cubic-bezier(.2,.8,.2,1)';
+    morphing = false;
+    document.body.style.cursor = '';
+  }, 950);
+}
+
+function next(){
+  if(current >= TOTAL || morphing) return;
+  playFlip();
+  current++;
+  updateStack();
+  if(current >= TOTAL){
+    setTimeout(()=>{
+      morphReset();
+      setTimeout(()=>{
+        current = 0;
+        pages.forEach(p=>p.style.transition = 'none');
+        updateStack();
+        requestAnimationFrame(()=>{
+          pages.forEach(p=>p.style.transition = '');
+        });
+      }, 950);
+    }, 700);
+  }
+}
+function prev(){
+  if(current <= 0 || morphing) return;
+  playFold();
+  playFlip();
+  current--;
+  updateStack();
+}
+
+nextBtn.addEventListener('click', next);
+prevBtn.addEventListener('click', prev);
+
+tabs.forEach(t=>{
+  t.addEventListener('click', ()=>{
+    const target = Number(t.dataset.page);
+    if(target === current || morphing) return;
+    playFlip();
+    current = target;
+    updateStack();
+  });
+});
+
+document.addEventListener('keydown', e=>{
+  if(morphing) return;
+  if(e.target.matches('input, textarea, select')) return;
+  if(e.key === 'ArrowLeft' || e.key === 'PageDown') next();
+  if(e.key === 'ArrowRight' || e.key === 'PageUp') prev();
+  if(e.key === 'Home'){ playFlip(); current = 0; updateStack(); }
+  if(e.key === 'End'){ playFlip(); current = TOTAL; updateStack(); }
+});
+
+let tx = 0;
+document.addEventListener('touchstart', e=>{ tx = e.changedTouches[0].screenX; },{passive:true});
+document.addEventListener('touchend', e=>{
+  const dx = e.changedTouches[0].screenX - tx;
+  if(Math.abs(dx) < 55 || morphing) return;
+  if(e.target.matches('input, textarea, select, button, video, a')) return;
+  if(dx < 0) next(); else prev();
+},{passive:true});
+
+/* =========================================================
+   3. MOUSE PARALLAX
+========================================================= */
+const stage = document.getElementById('stage');
+let mx = 0, my = 0, tX = 0, tY = 0;
+
+stage.addEventListener('mousemove', e=>{
+  if(morphing) return;
+  const r = stage.getBoundingClientRect();
+  mx = ((e.clientX - r.left) / r.width  - 0.5) * 2;
+  my = ((e.clientY - r.top ) / r.height - 0.5) * 2;
+});
+stage.addEventListener('mouseleave', ()=>{ mx = 0; my = 0; });
+
+function animateScene(){
+  if(!morphing){
+    tX += (mx - tX) * 0.09;
+    tY += (my - tY) * 0.09;
+    scene.style.transform = `rotateY(${tX*7}deg) rotateX(${-tY*5}deg)`;
+  } else {
+    tX = 0; tY = 0;
+  }
+  requestAnimationFrame(animateScene);
+}
+animateScene();
+
+/* =========================================================
+   4. AUDIO PLAYERS
+========================================================= */
+function fmt(s){
+  if(!s || Number.isNaN(s) || s === Infinity) return '00:00';
+  const m = Math.floor(s/60);
+  const r = Math.floor(s%60);
+  return String(m).padStart(2,'0') + ':' + String(r).padStart(2,'0');
+}
+document.querySelectorAll('.audio-play').forEach(btn=>{
+  const audioId = btn.dataset.audio;
+  const cdId = btn.dataset.cd;
+  const audio = document.getElementById(audioId);
+  const cd = document.getElementById(cdId);
+  const icon = btn.querySelector('i');
+  const prog = document.querySelector(`[data-progress="${audioId}"]`);
+  const curEl = document.querySelector(`[data-current="${audioId}"]`);
+  const durEl = document.querySelector(`[data-duration="${audioId}"]`);
+
+  btn.addEventListener('click', async ()=>{
+    document.querySelectorAll('.audio-file').forEach(a=>{ if(a!==audio) a.pause(); });
+    document.querySelectorAll('.cd-disc').forEach(c=>{ if(c!==cd) c.classList.remove('playing'); });
+    document.querySelectorAll('.audio-play i').forEach(i=>{ i.className='fa-solid fa-play'; });
+
+    if(audio.paused){
+      try{
+        await audio.play();
+        cd.classList.add('playing');
+        icon.className = 'fa-solid fa-pause';
+      }catch(e){ console.log('Audio error:', audio.src); }
+    } else {
+      audio.pause();
+      cd.classList.remove('playing');
+      icon.className = 'fa-solid fa-play';
+    }
+  });
+
+  audio.addEventListener('timeupdate', ()=>{
+    if(!audio.duration) return;
+    prog.value = (audio.currentTime / audio.duration) * 100;
+    curEl.textContent = fmt(audio.currentTime);
+  });
+  audio.addEventListener('loadedmetadata', ()=>{ durEl.textContent = fmt(audio.duration); });
+  prog.addEventListener('input', ()=>{
+    if(!audio.duration) return;
+    audio.currentTime = (prog.value / 100) * audio.duration;
+  });
+  audio.addEventListener('ended', ()=>{
+    cd.classList.remove('playing');
+    icon.className = 'fa-solid fa-play';
+    prog.value = 0;
+    curEl.textContent = '00:00';
+  });
+});
+
+/* =========================================================
+   5. FEEDBACK
+========================================================= */
+const MY_EMAIL = 'tamara.alshbat@example.com';
+const fbForm = document.getElementById('fbForm');
+const fbStatus = document.getElementById('fbStatus');
+
+if(fbForm){
+  fbForm.addEventListener('submit', e=>{
+    e.preventDefault();
+    const name = document.getElementById('fbName').value.trim();
+    const email = document.getElementById('fbEmail').value.trim();
+    const subject = document.getElementById('fbSubject').value.trim();
+    const message = document.getElementById('fbMessage').value.trim();
+    const ratingEl = document.querySelector('input[name="rating"]:checked');
+    const rating = ratingEl ? ratingEl.value : '—';
+
+    if(!name || !email || !message){
+      fbStatus.textContent = '⚠ يرجى تعبئة الحقول المطلوبة';
+      fbStatus.className = 'fb-status err';
+      return;
+    }
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+      fbStatus.textContent = '⚠ البريد الإلكتروني غير صحيح';
+      fbStatus.className = 'fb-status err';
+      return;
+    }
+    const finalSubject = encodeURIComponent(
+      subject ? `[Portfolio Feedback] ${subject}` : '[Portfolio Feedback] رسالة جديدة'
+    );
+    const body = encodeURIComponent(
+      `الاسم: ${name}\nالبريد: ${email}\nالتقييم: ${rating} / 5\n` +
+      `────────────────\n\n${message}\n\n────────────────\n` +
+      `تم الإرسال من Portfolio — Tamara Alshbat`
+    );
+    window.location.href = `mailto:${MY_EMAIL}?subject=${finalSubject}&body=${body}`;
+    fbStatus.textContent = '✓ تم فتح برنامج البريد';
+    fbStatus.className = 'fb-status ok';
+    setTimeout(()=>{
+      fbForm.reset();
+      fbStatus.textContent = '✓ جاهز للإرسال';
+      fbStatus.className = 'fb-status';
+    }, 4000);
+  });
+}
+
+/* =========================================================
+   6. QR CODE
+========================================================= */
+const qrEl = document.getElementById('qrcode');
+if(qrEl && window.QRCode){
+  new QRCode(qrEl, {
+    text: 'https://github.com/tamara126enad',
+    width: 170, height: 170,
+    colorDark: '#0b2545', colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.H
+  });
+}
+
+/* =========================================================
+   7. LIGHTBOX (AI images)
+========================================================= */
+const lightbox = document.getElementById('lightbox');
+const lbImg = document.getElementById('lbImg');
+const lbCaption = document.getElementById('lbCaption');
+const lbClose = document.getElementById('lbClose');
+
+document.querySelectorAll('.ai-thumb').forEach(thumb=>{
+  thumb.addEventListener('click', ()=>{
+    const img = thumb.querySelector('img');
+    const src = thumb.dataset.img || img.src;
+    lbImg.src = src;
+    lbCaption.textContent = thumb.dataset.caption || '';
+    lightbox.classList.add('open');
+  });
+});
+
+function closeLightbox(){
+  lightbox.classList.remove('open');
+}
+lbClose.addEventListener('click', e=>{ e.stopPropagation(); closeLightbox(); });
+lightbox.addEventListener('click', e=>{
+  if(e.target === lightbox) closeLightbox();
+});
+document.addEventListener('keydown', e=>{
+  if(e.key === 'Escape') closeLightbox();
+});
+
+/* =========================================================
+   8. LINKS — Preview popup
+========================================================= */
+document.querySelectorAll('.link-btn.ghost[data-open]').forEach(btn=>{
+  btn.addEventListener('click', e=>{
+    e.preventDefault();
+    e.stopPropagation();
+    const url = btn.dataset.open;
+    if(url){
+      const w = Math.min(window.innerWidth * 0.9, 1200);
+      const h = Math.min(window.innerHeight * 0.9, 800);
+      const left = (window.screen.width - w) / 2;
+      const top = (screen.height - h) / 2;
+      window.open(url, '_blank',
+        `width=${w},height=${h},left=${left},top=${top},noopener`);
+    }
+  });
+});
+
+/* =========================================================
+   9. INIT
+========================================================= */
+updateStack();
+</script>
+
+</body>
+</html>

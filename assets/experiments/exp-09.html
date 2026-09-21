@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Underwater World VR — Interactive Exploration</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js r128 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&family=Cinzel:wght@500;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #030a16;
+            color: #e0f2fe;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .font-cinzel { font-family: 'Cinzel', serif; }
+        
+        /* Glassmorphism styling */
+        .glass-panel {
+            background: rgba(8, 28, 52, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        
+        .glass-button {
+            background: rgba(14, 165, 233, 0.2);
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            backdrop-filter: blur(8px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-button:hover {
+            background: rgba(14, 165, 233, 0.45);
+            border-color: rgba(186, 230, 253, 0.8);
+            transform: translateY(-2px);
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.5);
+        }
+
+        /* Reticle crosshair animation */
+        .reticle {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.7);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            transition: width 0.2s, height 0.2s, border-color 0.2s, background-color 0.2s;
+            z-index: 30;
+        }
+        .reticle.active {
+            width: 32px;
+            height: 32px;
+            border-color: #38bdf8;
+            background-color: rgba(56, 189, 248, 0.2);
+        }
+
+        /* VR Comfort Vignette */
+        #vr-vignette {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            box-shadow: inset 0 0 100px rgba(0,0,0,0.8);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 25;
+        }
+        
+        /* Custom scrollbar for discovery list */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(3, 10, 22, 0.5);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(56, 189, 248, 0.3);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(56, 189, 248, 0.6);
+        }
+    </style>
+</head>
+<body class="w-screen h-screen m-0 p-0 overflow-hidden select-none">
+
+    
+    <!-- 3D Canvas Container -->
+    <div id="webgl-container" class="absolute inset-0 w-full h-full z-0 cursor-grab active:cursor-grabbing"></div>
+
+    <!-- Center Reticle / Crosshair for interaction -->
+    <div id="reticle" class="reticle"></div>
+
+    <!-- VR Comfort Vignette overlay -->
+    <div id="vr-vignette"></div>
+
+    <!-- START SCREEN / LANDING SPLASH -->
+    <div id="start-screen" class="absolute inset-0 z-50 flex flex-col items-center justify-between p-6 md:p-12 text-center bg-gradient-to-b from-[#020617] via-[#082f49] to-[#030a16] transition-opacity duration-1000">
+        <!-- Floating background ambient glow -->
+        <div class="absolute w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-3xl pointer-events-none top-1/4 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
+        
+        <!-- Header logo / Title -->
+        <div class="pt-12 z-10 max-w-3xl">
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-950/60 border border-cyan-500/30 text-cyan-300 text-xs font-semibold uppercase tracking-widest mb-6 backdrop-blur-md">
+                <i class="fa-solid font-sharp fa-vr-cardboard text-cyan-400"></i> WebXR 3D Underwater Experience
+            </div>
+            <h1 class="font-cinzel text-4xl sm:text-6xl md:text-7xl font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-sky-200 via-cyan-100 to-teal-300 drop-shadow-lg">
+                UNDERWATER WORLD
+            </h1>
+            <p class="mt-4 text-base sm:text-xl text-sky-200/80 font-light max-w-xl mx-auto leading-relaxed">
+                Dive beneath the surface. Discover vibrant coral reefs, ancient depths, and living ocean creatures in an immersive 3D world.
+            </p>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="z-10 flex flex-col sm:flex-row items-center justify-center gap-5 w-full max-w-md my-auto">
+            <button id="btn-start-desktop" class="w-full sm:w-auto px-8 py-4 rounded-2xl glass-button text-sky-100 font-semibold text-lg flex items-center justify-center gap-3 group">
+                <span>EXPLORE THE OCEAN</span>
+                <i class="fa-solid fa-water text-cyan-400 group-hover:translate-x-1 transition-transform"></i>
+            </button>
+            <button id="btn-enter-vr" class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-lg shadow-lg shadow-cyan-500/30 flex items-center justify-center gap-3 transition-all transform hover:scale-105">
+                <i class="fa-solid fa-vr-cardboard text-xl"></i>
+                <span>ENTER VR</span>
+            </button>
+        </div>
+
+        <!-- Copyright & Intellectual Property Header Notice -->
+        <div class="z-10 border-t border-cyan-500/20 pt-4 w-full max-w-2xl text-center">
+            <p class="text-xs sm:text-sm text-cyan-300/70 dir-rtl font-medium">
+                حقوق ملكية فكرة وتنفيذ تمرا الشباطات
+            </p>
+            <p class="text-[11px] text-sky-400/50 mt-1 uppercase tracking-widest">
+                Concept & Execution Rights © Tamara Al-Shabatat
+            </p>
+        </div>
+    </div>
+
+    <!-- MAIN HUD (Top & Side Bars) -->
+    <div id="hud" class="absolute inset-0 z-20 pointer-events-none flex flex-col justify-between p-4 sm:p-6 opacity-0 transition-opacity duration-500">
+        
+        <!-- Top Bar -->
+        <div class="flex items-center justify-between w-full pointer-events-auto">
+            
+            <!-- Depth Indicator & Zone Badge -->
+            <div class="glass-panel px-4 py-2.5 rounded-2xl flex items-center gap-4">
+                <div class="flex items-center gap-2 text-cyan-300">
+                    <i class="fa-solid fa-arrows-up-down text-sm"></i>
+                    <span id="depth-meter" class="font-mono text-lg font-bold text-sky-100">0.0 m</span>
+                </div>
+                <div class="h-4 w-px bg-cyan-500/30"></div>
+                <div class="flex flex-col">
+                    <span class="text-[10px] text-cyan-300/60 font-semibold uppercase tracking-wider">Current Zone</span>
+                    <span id="zone-badge" class="text-xs font-bold text-teal-300">ZONE 01 — Coral Reef</span>
+                </div>
+            </div>
+
+            <!-- Discovery Counter Button -->
+            <button id="btn-open-journal" class="glass-panel hover:bg-cyan-950/80 px-4 py-2.5 rounded-2xl flex items-center gap-3 transition-all group">
+                <i class="fa-solid fa-compass text-cyan-400 text-base group-hover:rotate-45 transition-transform"></i>
+                <div class="flex flex-col text-left">
+                    <span class="text-[10px] text-cyan-300/60 font-semibold uppercase tracking-wider">Species Discovered</span>
+                    <span id="discovery-counter-hud" class="text-xs font-bold text-sky-100">0 / 7 Found</span>
+                </div>
+            </button>
+
+            <!-- Quick Controls (Audio, VR, Info) -->
+            <div class="flex items-center gap-2">
+                <button id="btn-toggle-audio" class="glass-panel p-3 rounded-2xl text-sky-200 hover:text-white transition-colors" title="Toggle Sound">
+                    <i id="icon-audio" class="fa-solid fa-volume-high text-base"></i>
+                </button>
+                <button id="btn-toggle-comfort" class="glass-panel p-3 rounded-2xl text-sky-200 hover:text-white transition-colors hidden sm:flex" title="VR Comfort Vignette">
+                    <i class="fa-solid fa-eye-slash text-base"></i>
+                </button>
+                <button id="btn-hud-vr" class="glass-panel p-3 rounded-2xl text-cyan-300 hover:text-white transition-colors" title="Toggle VR Mode">
+                    <i class="fa-solid fa-vr-cardboard text-base"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Touch Joystick visual guide (Mobile only) -->
+        <div id="mobile-controls-hint" class="sm:hidden text-center text-xs text-sky-300/70 bg-black/40 py-1.5 px-4 rounded-full mx-auto backdrop-blur-md">
+            <i class="fa-solid fa-hand-pointer mr-1"></i> Drag left side to move • Drag right to look
+        </div>
+
+        <!-- Bottom Controls / Desktop Keyboard Guide -->
+        <div class="flex items-end justify-between w-full pointer-events-auto">
+            <!-- Desktop Instructions -->
+            <div class="hidden sm:flex items-center gap-4 text-xs text-sky-300/80 glass-panel px-4 py-2 rounded-xl">
+                <span><kbd class="px-1.5 py-0.5 bg-cyan-950 border border-cyan-500/40 rounded text-sky-200">W A S D</kbd> Move</span>
+                <span><kbd class="px-1.5 py-0.5 bg-cyan-950 border border-cyan-500/40 rounded text-sky-200">Mouse</kbd> Look</span>
+                <span><kbd class="px-1.5 py-0.5 bg-cyan-950 border border-cyan-500/40 rounded text-sky-200">Q / E</kbd> Ascend / Descend</span>
+                <span><kbd class="px-1.5 py-0.5 bg-cyan-950 border border-cyan-500/40 rounded text-sky-200">Click</kbd> Interact</span>
+            </div>
+
+            <!-- Ownership Watermark Badge in HUD -->
+            <div class="glass-panel px-3 py-1.5 rounded-xl text-right ml-auto">
+                <span class="text-[11px] text-cyan-300/90 font-medium dir-rtl block">تمرا الشباطات</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- INTERACTIVE DISCOVERY INFO CARD MODAL -->
+    <div id="info-modal" class="absolute bottom-10 left-1/2 transform -translate-x-1/2 z-40 w-[90%] max-w-md glass-panel p-6 rounded-3xl opacity-0 translate-y-8 pointer-events-none transition-all duration-300">
+        <button id="btn-close-modal" class="absolute top-4 right-4 text-cyan-300/60 hover:text-white p-2">
+            <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+        <div class="flex items-center gap-3 mb-2">
+            <span id="modal-badge" class="px-2.5 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-400/40 text-[10px] uppercase font-bold text-cyan-300">New Discovery</span>
+            <span id="modal-zone" class="text-xs text-sky-300/60 font-medium">Zone 01</span>
+        </div>
+        <h3 id="modal-title" class="font-cinzel text-2xl font-bold text-white mb-2">SEA TURTLE</h3>
+        <p id="modal-desc" class="text-sm text-sky-200/90 leading-relaxed font-light mb-4">
+            Sea turtles can travel thousands of kilometers during their lifetime across open oceanic migritory routes.
+        </p>
+        <div class="flex items-center justify-between text-xs text-cyan-400 border-t border-cyan-500/20 pt-3">
+            <span class="flex items-center gap-1.5"><i class="fa-solid fa-circle-check"></i> Added to Journal</span>
+            <span class="italic text-sky-300/60">Press [ESC] or Tap to close</span>
+        </div>
+    </div>
+
+    <!-- DISCOVERY JOURNAL DRAWER -->
+    <div id="journal-drawer" class="absolute top-0 right-0 bottom-0 z-40 w-full sm:w-96 glass-panel border-l border-cyan-500/30 p-6 flex flex-col justify-between translate-x-full transition-transform duration-300 pointer-events-auto">
+        <div>
+            <div class="flex items-center justify-between pb-4 border-b border-cyan-500/20">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-book-bookmark text-cyan-400 text-xl"></i>
+                    <h2 class="font-cinzel text-xl font-bold text-sky-100">Ocean Discoveries</h2>
+                </div>
+                <button id="btn-close-journal" class="text-sky-300/60 hover:text-white p-2">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Progress bar -->
+            <div class="my-4">
+                <div class="flex justify-between text-xs text-cyan-300 font-semibold mb-1">
+                    <span>Progress</span>
+                    <span id="journal-progress-text">0%</span>
+                </div>
+                <div class="w-full bg-cyan-950/80 h-2 rounded-full overflow-hidden border border-cyan-500/30">
+                    <div id="journal-progress-bar" class="bg-gradient-to-r from-cyan-400 to-teal-300 h-full w-0 transition-all duration-500"></div>
+                </div>
+            </div>
+
+            <!-- Species Cards List -->
+            <div id="journal-list" class="space-y-3 overflow-y-auto max-h-[60vh] pr-1">
+                <!-- Dynamic cards populated by JS -->
+            </div>
+        </div>
+
+        <div class="pt-4 border-t border-cyan-500/20 text-center">
+            <p class="text-xs text-cyan-300/80 font-medium dir-rtl">حقوق ملكية فكرة وتنفيذ تمرا الشباطات</p>
+            <p class="text-[10px] text-sky-400/50 uppercase tracking-wider mt-0.5">Tamara Al-Shabatat © 2026</p>
+        </div>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        
+        // Procedural Audio Synthesizer (No external sound files required)
+        class UnderwaterAudioEngine {
+            constructor() {
+                this.ctx = null;
+                this.isMuted = false;
+                this.ambientGain = null;
+                this.bubbleGain = null;
+                this.initialized = false;
+            }
+
+            init() {
+                if (this.initialized) return;
+                try {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                    
+                    // Main Ambient Deep Sub-Rumble
+                    const ambientOsc = this.ctx.createOscillator();
+                    const ambientFilter = this.ctx.createBiquadFilter();
+                    this.ambientGain = this.ctx.createGain();
+
+                    ambientOsc.type = 'sine';
+                    ambientOsc.frequency.setValueAtTime(45, this.ctx.currentTime); // Low deep pitch
+                    
+                    ambientFilter.type = 'lowpass';
+                    ambientFilter.frequency.setValueAtTime(120, this.ctx.currentTime);
+
+                    this.ambientGain.gain.setValueAtTime(0.18, this.ctx.currentTime);
+
+                    ambientOsc.connect(ambientFilter);
+                    ambientFilter.connect(this.ambientGain);
+                    this.ambientGain.connect(this.ctx.destination);
+                    ambientOsc.start();
+
+                    // Periodic Ambient Water Bubble Pops
+                    this.bubbleGain = this.ctx.createGain();
+                    this.bubbleGain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+                    this.bubbleGain.connect(this.ctx.destination);
+
+                    this.scheduleBubbles();
+                    this.initialized = true;
+                } catch (e) {
+                    console.warn("Web Audio API not fully supported", e);
+                }
+            }
+
+            scheduleBubbles() {
+                if (!this.ctx) return;
+                setInterval(() => {
+                    if (this.isMuted || !this.initialized) return;
+                    this.playBubbleSound();
+                }, 2500 + Math.random() * 3000);
+            }
+
+            playBubbleSound() {
+                if (!this.ctx || this.isMuted) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                const now = this.ctx.currentTime;
+                const startFreq = 300 + Math.random() * 400;
+                const endFreq = startFreq + 250 + Math.random() * 200;
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(startFreq, now);
+                osc.frequency.exponentialRampToValueAtTime(endFreq, now + 0.12);
+
+                gain.gain.setValueAtTime(0.08, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+                osc.connect(gain);
+                gain.connect(this.bubbleGain);
+
+                osc.start(now);
+                osc.stop(now + 0.13);
+            }
+
+            playWhaleCall() {
+                if (!this.ctx || this.isMuted) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                const filter = this.ctx.createBiquadFilter();
+
+                osc.type = 'sawtooth';
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(220, now);
+
+                osc.frequency.setValueAtTime(110, now);
+                osc.frequency.linearRampToValueAtTime(140, now + 1.2);
+                osc.frequency.linearRampToValueAtTime(95, now + 3.0);
+
+                gain.gain.setValueAtTime(0.001, now);
+                gain.gain.linearRampToValueAtTime(0.12, now + 0.8);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 3.2);
+
+                osc.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 3.3);
+            }
+
+            playChime() {
+                if (!this.ctx || this.isMuted) return;
+                const now = this.ctx.currentTime;
+                const freqs = [523.25, 659.25, 783.99, 1046.50]; // C Major chord
+                freqs.forEach((f, i) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(f, now + i * 0.08);
+
+                    gain.gain.setValueAtTime(0.05, now + i * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.08 + 1.2);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now + i * 0.08);
+                    osc.stop(now + i * 0.08 + 1.25);
+                });
+            }
+
+            toggleMute() {
+                this.isMuted = !this.isMuted;
+                if (this.ambientGain) {
+                    this.ambientGain.gain.setValueAtTime(this.isMuted ? 0 : 0.18, this.ctx.currentTime);
+                }
+                return this.isMuted;
+            }
+        }
+
+        const audioEngine = new UnderwaterAudioEngine();
+
+
+        // Global Application State & Species Database
+        const SPECIES_DATA = [
+            { id: 'tropical_fish', name: 'Tropical Fish School', zone: 'Zone 01', desc: 'Bright clownfish & tangs darting in schools around coral structures. They respond quickly to nearby ocean divers.', discovered: false, icon: 'fa-fish' },
+            { id: 'sea_turtle', name: 'Hawksbill Sea Turtle', zone: 'Zone 01 & 02', desc: 'Sea turtles travel thousands of kilometers across open ocean currents during their lifetime, returning home to nest.', discovered: false, icon: 'fa-worm' },
+            { id: 'jellyfish', name: 'Bioluminescent Jellyfish', zone: 'Zone 02', desc: 'Pulsating translucent bell creatures that float vertically and glow brightly in darker mid-water ocean depths.', discovered: false, icon: 'fa-dharmachakra' },
+            { id: 'octopus', name: 'Pacific Octopus', zone: 'Zone 02', desc: 'A master of camouflage lurking inside coral caverns. Highly intelligent with subtle tentacle motions.', discovered: false, icon: 'fa-spaghetti-monster-flying' },
+            { id: 'reef_shark', name: 'Reef Shark', zone: 'Zone 02', desc: 'A sleek predator maintaining safe distances while patrolling territory loops with calm, graceful movements.', discovered: false, icon: 'fa-fish-fins' },
+            { id: 'giant_whale', name: 'Blue Whale', zone: 'Zone 03', desc: 'The largest creature on Earth, gliding gracefully through deep abyssal waters while emitting magnificent low-frequency songs.', discovered: false, icon: 'fa-water' },
+            { id: 'sunken_statue', name: 'Ancient Sunken Statue', zone: 'Zone 01', desc: 'A relic from forgotten centuries overgrown with sea fans and brain corals, offering shelter to cryptic marine life.', discovered: false, icon: 'fa-monument' }
+        ];
+
+        let scene, camera, renderer, clock;
+        let ambientLight, sunLight, causticLight;
+        let cameraGroup; // Container for VR/Desktop camera movements
+        
+        // Interactive 3D Objects mapping
+        const interactiveObjects = [];
+        const animatedCreatures = [];
+        
+        // Depth zones configuration
+        const ZONES = {
+            1: { name: 'ZONE 01 — Coral Reef', maxDepth: 15, fogColor: 0x0b3c5d, fogDensity: 0.018, lightColor: 0x38bdf8 },
+            2: { name: 'ZONE 02 — Blue Depths', maxDepth: 35, fogColor: 0x041c38, fogDensity: 0.025, lightColor: 0x0284c7 },
+            3: { name: 'ZONE 03 — Deep Ocean', maxDepth: 70, fogColor: 0x010814, fogDensity: 0.038, lightColor: 0x0369a1 }
+        };
+
+        // Movement & Input state
+        const keys = { w: false, a: false, s: false, d: false, q: false, e: false };
+        let isMouseDown = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        let pitch = 0, yaw = 0;
+        let isComfortMode = false;
+        let currentDiscoveredCount = 0;
+
+        // Initialize Three.js Engine
+        function initEngine() {
+            const container = document.getElementById('webgl-container');
+            
+            // Clock & Scene
+            clock = new THREE.Clock();
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(ZONES[1].fogColor);
+            scene.fog = new THREE.FogExp2(ZONES[1].fogColor, ZONES[1].fogDensity);
+
+            // Camera & Rig
+            camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 300);
+            cameraGroup = new THREE.Group();
+            cameraGroup.position.set(0, 3, 10); // Start above reef surface
+            cameraGroup.add(camera);
+            scene.add(cameraGroup);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.1;
+            renderer.xr.enabled = true; // WebXR enablement
+            container.appendChild(renderer.domElement);
+
+            // Lighting Setup
+            ambientLight = new THREE.AmbientLight(0x103d52, 1.2);
+            scene.add(ambientLight);
+
+            sunLight = new THREE.DirectionalLight(0xbef264, 2.0); // Surface volumetric sun
+            sunLight.position.set(20, 50, 20);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 1024;
+            sunLight.shadow.mapSize.height = 1024;
+            sunLight.shadow.camera.near = 1;
+            sunLight.shadow.camera.far = 100;
+            scene.add(sunLight);
+
+            // Caustic Spot Light
+            causticLight = new THREE.SpotLight(0x38bdf8, 3.0, 60, Math.PI / 3, 0.5, 1);
+            causticLight.position.set(0, 20, 0);
+            scene.add(causticLight);
+
+            createVolumetricSunRays();
+            createUnderwaterParticles();
+            
+            buildOceanFloorAndCaverns();
+            
+            buildMarineLife();
+
+            // Window resize handler
+            window.addEventListener('resize', onWindowResize, false);
+            setupInputListeners();
+            setupUIHandlers();
+            
+            // Render loop
+            renderer.setAnimationLoop(animate);
+        }
+
+        // Volumetric Sun Rays (Cone meshes with custom smooth transparency)
+        function createVolumetricSunRays() {
+            const rayGroup = new THREE.Group();
+            const rayGeo = new THREE.ConeGeometry(8, 45, 16, 1, true);
+            const rayMat = new THREE.MeshBasicMaterial({
+                color: 0x7dd3fc,
+                transparent: true,
+                opacity: 0.15,
+                side: THREE.DoubleSide,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            for (let i = 0; i < 6; i++) {
+                const ray = new THREE.Mesh(rayGeo, rayMat);
+                ray.position.set((Math.random() - 0.5) * 30, 20, (Math.random() - 0.5) * 30);
+                ray.rotation.z = (Math.random() - 0.5) * 0.3;
+                ray.rotation.x = (Math.random() - 0.5) * 0.3;
+                rayGroup.add(ray);
+            }
+            scene.add(rayGroup);
+
+            // Animate rays sway softly in loop
+            animatedCreatures.push({
+                update: (time) => {
+                    rayGroup.children.forEach((ray, idx) => {
+                        ray.rotation.z = Math.sin(time * 0.5 + idx) * 0.08;
+                    });
+                }
+            });
+        }
+
+        // Floating Plankton / Bubble Particles
+        function createUnderwaterParticles() {
+            const count = 1200;
+            const geo = new THREE.BufferGeometry();
+            const positions = new Float32Array(count * 3);
+            const sizes = new Float32Array(count);
+
+            for (let i = 0; i < count; i++) {
+                positions[i * 3] = (Math.random() - 0.5) * 120;
+                positions[i * 3 + 1] = (Math.random() - 0.5) * 80 - 10;
+                positions[i * 3 + 2] = (Math.random() - 0.5) * 120;
+                sizes[i] = Math.random() * 0.3 + 0.1;
+            }
+
+            geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+            const mat = new THREE.PointsMaterial({
+                color: 0xbae6fd,
+                size: 0.35,
+                transparent: true,
+                opacity: 0.6,
+                blending: THREE.AdditiveBlending
+            });
+
+            const particles = new THREE.Points(geo, mat);
+            scene.add(particles);
+
+            animatedCreatures.push({
+                update: (time) => {
+                    const pos = particles.geometry.attributes.position.array;
+                    for (let i = 0; i < count; i++) {
+                        pos[i * 3 + 1] += Math.sin(time + i) * 0.015; // Gentle float
+                        if (pos[i * 3 + 1] > 10) pos[i * 3 + 1] = -50;
+                    }
+                    particles.geometry.attributes.position.needsUpdate = true;
+                }
+            });
+        }
+
+        // Procedural Ocean Floor Terrain, Rocks & Caverns
+        function buildOceanFloorAndCaverns() {
+            // Seafloor Plane
+            const terrainGeo = new THREE.PlaneGeometry(160, 160, 64, 64);
+            terrainGeo.rotateX(-Math.PI / 2);
+
+            const pos = terrainGeo.attributes.position.array;
+            for (let i = 0; i < pos.length; i += 3) {
+                const x = pos[i];
+                const z = pos[i + 2];
+                // Elevation noise simulation
+                pos[i + 1] = Math.sin(x * 0.08) * Math.cos(z * 0.08) * 3 - 18 + Math.sin(x * 0.2) * 1.2;
+            }
+            terrainGeo.computeVertexNormals();
+
+            const terrainMat = new THREE.MeshStandardMaterial({
+                color: 0x1e3a5f,
+                roughness: 0.9,
+                metalness: 0.1,
+                flatShading: true
+            });
+
+            const terrain = new THREE.Mesh(terrainGeo, terrainMat);
+            terrain.receiveShadow = true;
+            terrain.position.y = -2;
+            scene.add(terrain);
+
+            // Coral Rocks & Formations
+            const rockGeo = new THREE.DodecahedronGeometry(3, 2);
+            const rockMat = new THREE.MeshStandardMaterial({ color: 0x0f2d4a, roughness: 0.8 });
+
+            for (let i = 0; i < 24; i++) {
+                const rock = new THREE.Mesh(rockGeo, rockMat);
+                const scale = Math.random() * 2 + 1;
+                rock.scale.set(scale, scale * (Math.random() + 0.8), scale);
+                rock.position.set((Math.random() - 0.5) * 80, -18, (Math.random() - 0.5) * 80);
+                rock.rotation.set(Math.random(), Math.random(), Math.random());
+                rock.castShadow = true;
+                rock.receiveShadow = true;
+                scene.add(rock);
+            }
+
+            // Cave entrance structure for Octopus in Zone 2
+            const caveGeo = new THREE.TorusGeometry(6, 3.5, 12, 18, Math.PI);
+            const caveMat = new THREE.MeshStandardMaterial({ color: 0x081e36, roughness: 0.95 });
+            const cave = new THREE.Mesh(caveGeo, caveMat);
+            cave.position.set(-18, -22, -15);
+            cave.rotation.x = Math.PI / 2;
+            cave.rotation.z = Math.PI / 4;
+            scene.add(cave);
+
+            // Plant / Seaweed Forest (Waving vertex swaying)
+            createKelpForest();
+
+            // Sunken Ancient Statue (Interactive object)
+            createSunkenStatue();
+        }
+
+        // Procedural Kelp & Seaweed Plants
+        function createKelpForest() {
+            const kelpCount = 80;
+            const kelpGroup = new THREE.Group();
+
+            for (let i = 0; i < kelpCount; i++) {
+                const height = Math.random() * 8 + 6;
+                const geo = new THREE.CylinderGeometry(0.1, 0.25, height, 8, 8);
+                geo.translate(0, height / 2, 0); // Origin at base
+                const mat = new THREE.MeshStandardMaterial({
+                    color: 0x0d9488,
+                    roughness: 0.6,
+                    side: THREE.DoubleSide
+                });
+
+                const kelp = new THREE.Mesh(geo, mat);
+                const rx = (Math.random() - 0.5) * 70;
+                const rz = (Math.random() - 0.5) * 70;
+                kelp.position.set(rx, -18, rz);
+                kelpGroup.add(kelp);
+            }
+            scene.add(kelpGroup);
+
+            // Animate seaweed swaying in current
+            animatedCreatures.push({
+                update: (time) => {
+                    kelpGroup.children.forEach((k, idx) => {
+                        k.rotation.z = Math.sin(time * 1.5 + idx) * 0.15;
+                        k.rotation.x = Math.cos(time * 1.2 + idx) * 0.1;
+                    });
+                }
+            });
+        }
+
+        // Sunken Archeological Statue (Interactive)
+        function createSunkenStatue() {
+            const group = new THREE.Group();
+            
+            // Statue Pedestal & Pillar
+            const baseGeo = new THREE.BoxGeometry(4, 3, 4);
+            const pillarGeo = new THREE.CylinderGeometry(1.2, 1.5, 7, 12);
+            const mat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.9 });
+
+            const base = new THREE.Mesh(baseGeo, mat);
+            base.position.y = 1.5;
+            const pillar = new THREE.Mesh(pillarGeo, mat);
+            pillar.position.y = 6;
+            
+            group.add(base);
+            group.add(pillar);
+            group.position.set(12, -18, -10);
+
+            // Add colourful corals growing on statue
+            const coralGeo = new THREE.IcosahedronGeometry(0.8, 1);
+            const coralMat = new THREE.MeshStandardMaterial({ color: 0xf43f5e, roughness: 0.5 });
+            const coral = new THREE.Mesh(coralGeo, coralMat);
+            coral.position.set(1, 4, 1);
+            group.add(coral);
+
+            scene.add(group);
+
+            // Register as Interactive Object
+            group.userData = { speciesId: 'sunken_statue', radius: 4 };
+            interactiveObjects.push(group);
+        }
+
+
+        function buildMarineLife() {
+            // 1. School of Tropical Fish (Zone 1)
+            createFishSchool();
+
+            // 2. Sea Turtle (Zone 1 & 2)
+            createSeaTurtle();
+
+            // 3. Bioluminescent Jellyfish Cluster (Zone 2)
+            createJellyfishCluster();
+
+            // 4. Cave Octopus (Zone 2)
+            createCaveOctopus();
+
+            // 5. Patrolling Reef Shark (Zone 2)
+            createReefShark();
+
+            // 6. Giant Distant Blue Whale (Zone 3)
+            createGiantWhale();
+        }
+
+        // 1. Tropical Fish School
+        function createFishSchool() {
+            const schoolGroup = new THREE.Group();
+            const fishCount = 28;
+            const fishes = [];
+
+            const bodyGeo = new THREE.ConeGeometry(0.25, 0.8, 6);
+            bodyGeo.rotateX(Math.PI / 2);
+            const matYellow = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.3 });
+            const matBlue = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.3 });
+
+            for (let i = 0; i < fishCount; i++) {
+                const fish = new THREE.Mesh(bodyGeo, (i % 2 === 0) ? matYellow : matBlue);
+                fish.position.set(
+                    (Math.random() - 0.5) * 8,
+                    (Math.random() - 0.5) * 4,
+                    (Math.random() - 0.5) * 8
+                );
+                schoolGroup.add(fish);
+                fishes.push({
+                    mesh: fish,
+                    speed: 1.5 + Math.random() * 0.8,
+                    offset: Math.random() * Math.PI * 2
+                });
+            }
+
+            schoolGroup.position.set(0, -3, 2);
+            scene.add(schoolGroup);
+
+            // Register as Interactive Object
+            schoolGroup.userData = { speciesId: 'tropical_fish', radius: 6 };
+            interactiveObjects.push(schoolGroup);
+
+            // Animate schooling path
+            animatedCreatures.push({
+                update: (time) => {
+                    const radius = 12;
+                    schoolGroup.position.x = Math.sin(time * 0.3) * radius;
+                    schoolGroup.position.z = Math.cos(time * 0.3) * radius;
+                    schoolGroup.rotation.y = time * 0.3 + Math.PI / 2;
+
+                    fishes.forEach(f => {
+                        f.mesh.position.y += Math.sin(time * 3 + f.offset) * 0.01;
+                        f.mesh.rotation.z = Math.sin(time * 4 + f.offset) * 0.15; // Wiggle tail
+                    });
+                }
+            });
+        }
+
+        // 2. Sea Turtle
+        function createSeaTurtle() {
+            const turtle = new THREE.Group();
+
+            // Shell (Carapace)
+            const shellGeo = new THREE.SphereGeometry(1.6, 16, 12);
+            shellGeo.scale(1, 0.45, 1.3);
+            const shellMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.6 });
+            const shell = new THREE.Mesh(shellGeo, shellMat);
+            shell.castShadow = true;
+            turtle.add(shell);
+
+            // Head
+            const headGeo = new THREE.SphereGeometry(0.5, 12, 10);
+            headGeo.scale(0.8, 0.7, 1);
+            const skinMat = new THREE.MeshStandardMaterial({ color: 0x166534, roughness: 0.7 });
+            const head = new THREE.Mesh(headGeo, skinMat);
+            head.position.set(0, 0, 1.8);
+            turtle.add(head);
+
+            // Flippers
+            const flipperGeo = new THREE.BoxGeometry(1.8, 0.1, 0.7);
+            const leftFlipper = new THREE.Mesh(flipperGeo, skinMat);
+            leftFlipper.position.set(-1.4, -0.1, 0.8);
+            leftFlipper.rotation.y = -Math.PI / 6;
+
+            const rightFlipper = new THREE.Mesh(flipperGeo, skinMat);
+            rightFlipper.position.set(1.4, -0.1, 0.8);
+            rightFlipper.rotation.y = Math.PI / 6;
+
+            turtle.add(leftFlipper);
+            turtle.add(rightFlipper);
+
+            turtle.position.set(-8, -8, -6);
+            scene.add(turtle);
+
+            // Register Interactive
+            turtle.userData = { speciesId: 'sea_turtle', radius: 3.5 };
+            interactiveObjects.push(turtle);
+
+            // Animate swimming loop
+            animatedCreatures.push({
+                update: (time) => {
+                    const t = time * 0.25;
+                    turtle.position.x = Math.sin(t) * 18 - 5;
+                    turtle.position.z = Math.cos(t) * 18 - 5;
+                    turtle.position.y = -10 + Math.sin(t * 2) * 1.5;
+                    turtle.rotation.y = t + Math.PI / 2;
+
+                    // Flipper paddling motion
+                    leftFlipper.rotation.z = Math.sin(time * 2) * 0.3;
+                    rightFlipper.rotation.z = -Math.sin(time * 2) * 0.3;
+                }
+            });
+        }
+
+        // 3. Bioluminescent Jellyfish Cluster
+        function createJellyfishCluster() {
+            const cluster = new THREE.Group();
+            const jellies = [];
+
+            for (let i = 0; i < 5; i++) {
+                const jGroup = new THREE.Group();
+                
+                // Translucent Bell Dome
+                const bellGeo = new THREE.SphereGeometry(1.2, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.55);
+                const bellMat = new THREE.MeshStandardMaterial({
+                    color: 0x38bdf8,
+                    emissive: 0x0284c7,
+                    emissiveIntensity: 0.8,
+                    transparent: true,
+                    opacity: 0.7,
+                    roughness: 0.2
+                });
+                const bell = new THREE.Mesh(bellGeo, bellMat);
+                jGroup.add(bell);
+
+                // Tentacles
+                const tentacleCount = 6;
+                for (let k = 0; k < tentacleCount; k++) {
+                    const tGeo = new THREE.CylinderGeometry(0.03, 0.01, 3.5, 6);
+                    const tMat = new THREE.MeshBasicMaterial({ color: 0x7dd3fc, transparent: true, opacity: 0.6 });
+                    const tentacle = new THREE.Mesh(tGeo, tMat);
+                    const angle = (k / tentacleCount) * Math.PI * 2;
+                    tentacle.position.set(Math.cos(angle) * 0.6, -1.75, Math.sin(angle) * 0.6);
+                    jGroup.add(tentacle);
+                }
+
+                jGroup.position.set((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 6, (Math.random() - 0.5) * 10);
+                cluster.add(jGroup);
+
+                jellies.push({
+                    group: jGroup,
+                    baseY: jGroup.position.y,
+                    speed: 1 + Math.random() * 0.5,
+                    bellMesh: bell
+                });
+            }
+
+            cluster.position.set(18, -20, -18);
+            scene.add(cluster);
+
+            // Register Interactive
+            cluster.userData = { speciesId: 'jellyfish', radius: 4.5 };
+            interactiveObjects.push(cluster);
+
+            // Animate pulsing vertical motion
+            animatedCreatures.push({
+                update: (time) => {
+                    jellies.forEach((j, idx) => {
+                        const pulse = Math.sin(time * j.speed + idx);
+                        j.group.position.y = j.baseY + Math.sin(time * 0.8 + idx) * 2;
+                        
+                        // Bell expanding/contracting scale pulse
+                        const scaleY = 1 + pulse * 0.15;
+                        const scaleXZ = 1 - pulse * 0.08;
+                        j.bellMesh.scale.set(scaleXZ, scaleY, scaleXZ);
+                    });
+                }
+            });
+        }
+
+        // 4. Cave Octopus
+        function createCaveOctopus() {
+            const octoGroup = new THREE.Group();
+
+            // Mantle Head
+            const headGeo = new THREE.SphereGeometry(1.3, 16, 14);
+            headGeo.scale(1, 1.2, 0.9);
+            const mat = new THREE.MeshStandardMaterial({ color: 0xe11d48, roughness: 0.5 });
+            const head = new THREE.Mesh(headGeo, mat);
+            octoGroup.add(head);
+
+            // Tentacles
+            const tentacles = [];
+            for (let i = 0; i < 8; i++) {
+                const angle = (i / 8) * Math.PI * 2;
+                const tGeo = new THREE.CylinderGeometry(0.2, 0.04, 4, 8, 8);
+                tGeo.translate(0, -2, 0);
+                const tentacle = new THREE.Mesh(tGeo, mat);
+                tentacle.position.set(Math.cos(angle) * 0.8, -0.8, Math.sin(angle) * 0.8);
+                tentacle.rotation.z = Math.cos(angle) * 0.5;
+                tentacle.rotation.x = Math.sin(angle) * 0.5;
+                octoGroup.add(tentacle);
+                tentacles.push(tentacle);
+            }
+
+            // Placed near cave mouth in Zone 2
+            octoGroup.position.set(-17, -22.5, -14);
+            scene.add(octoGroup);
+
+            // Register Interactive
+            octoGroup.userData = { speciesId: 'octopus', radius: 3.5 };
+            interactiveObjects.push(octoGroup);
+
+            // Animate tentacles curling
+            animatedCreatures.push({
+                update: (time) => {
+                    tentacles.forEach((t, idx) => {
+                        t.rotation.z += Math.sin(time * 2 + idx) * 0.01;
+                    });
+                }
+            });
+        }
+
+        // 5. Patrolling Reef Shark
+        function createReefShark() {
+            const shark = new THREE.Group();
+
+            // Body
+            const bodyGeo = new THREE.ConeGeometry(0.9, 4.5, 12);
+            bodyGeo.rotateX(Math.PI / 2);
+            const sharkMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.4 });
+            const body = new THREE.Mesh(bodyGeo, sharkMat);
+            shark.add(body);
+
+            // Dorsal Fin
+            const finGeo = new THREE.ConeGeometry(0.4, 1.2, 6);
+            const fin = new THREE.Mesh(finGeo, sharkMat);
+            fin.position.set(0, 0.9, -0.2);
+            fin.rotation.x = -Math.PI / 4;
+            shark.add(fin);
+
+            // Tail Caudal Fin
+            const tailGeo = new THREE.BoxGeometry(0.1, 1.4, 0.8);
+            const tail = new THREE.Mesh(tailGeo, sharkMat);
+            tail.position.set(0, 0, -2.4);
+            shark.add(tail);
+
+            shark.position.set(25, -22, 10);
+            scene.add(shark);
+
+            // Register Interactive
+            shark.userData = { speciesId: 'reef_shark', radius: 5.0 };
+            interactiveObjects.push(shark);
+
+            // Animate calm wide circling path
+            animatedCreatures.push({
+                update: (time) => {
+                    const radius = 32;
+                    const speed = 0.18;
+                    shark.position.x = Math.sin(time * speed) * radius;
+                    shark.position.z = Math.cos(time * speed) * radius;
+                    shark.position.y = -22 + Math.sin(time * 0.5) * 1.5;
+                    shark.rotation.y = time * speed + Math.PI / 2;
+
+                    // Tail wag motion
+                    tail.rotation.y = Math.sin(time * 3) * 0.35;
+                }
+            });
+        }
+
+        // 6. Giant Distant Blue Whale (Zone 3)
+        function createGiantWhale() {
+            const whale = new THREE.Group();
+
+            // Massive Torso
+            const torsoGeo = new THREE.SphereGeometry(5, 20, 16);
+            torsoGeo.scale(1, 1.1, 3.2);
+            const whaleMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.7 });
+            const torso = new THREE.Mesh(torsoGeo, whaleMat);
+            whale.add(torso);
+
+            // Huge Fluke Tail
+            const tailGeo = new THREE.BoxGeometry(8, 0.4, 2);
+            const tail = new THREE.Mesh(tailGeo, whaleMat);
+            tail.position.set(0, 0, -15);
+            whale.add(tail);
+
+            // Positioned far in background Zone 3
+            whale.position.set(-60, -42, -70);
+            scene.add(whale);
+
+            // Register Interactive
+            whale.userData = { speciesId: 'giant_whale', radius: 12.0 };
+            interactiveObjects.push(whale);
+
+            // Animate majestic slow passing
+            animatedCreatures.push({
+                update: (time) => {
+                    const t = time * 0.06;
+                    whale.position.x = Math.sin(t) * 75 - 20;
+                    whale.position.z = Math.cos(t) * 75 - 40;
+                    whale.rotation.y = t + Math.PI / 2;
+
+                    // Slow tail fluke stroke
+                    tail.rotation.x = Math.sin(time * 0.8) * 0.2;
+                }
+            });
+        }
+
+
+        function setupInputListeners() {
+            // Keyboard Controls
+            window.addEventListener('keydown', (e) => {
+                const k = e.key.toLowerCase();
+                if (k in keys) keys[k] = true;
+            });
+            window.addEventListener('keyup', (e) => {
+                const k = e.key.toLowerCase();
+                if (k in keys) keys[k] = false;
+            });
+
+            // Mouse Look Dragging
+            const container = document.getElementById('webgl-container');
+            container.addEventListener('mousedown', (e) => {
+                isMouseDown = true;
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+            window.addEventListener('mouseup', () => { isMouseDown = false; });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isMouseDown) return;
+                const deltaX = e.clientX - previousMousePosition.x;
+                const deltaY = e.clientY - previousMousePosition.y;
+
+                yaw -= deltaX * 0.003;
+                pitch -= deltaY * 0.003;
+                pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
+
+                camera.rotation.set(pitch, yaw, 0, 'YXZ');
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+
+            // Mobile Touch Look & Tap Interaction
+            let touchStartPos = { x: 0, y: 0 };
+            window.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    touchStartPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                }
+            });
+            window.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 1) {
+                    const deltaX = e.touches[0].clientX - touchStartPos.x;
+                    const deltaY = e.touches[0].clientY - touchStartPos.y;
+
+                    yaw -= deltaX * 0.004;
+                    pitch -= deltaY * 0.004;
+                    pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
+
+                    camera.rotation.set(pitch, yaw, 0, 'YXZ');
+                    touchStartPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                }
+            });
+
+            // Raycasting Click/Tap Interaction
+            window.addEventListener('click', checkRaycastInteractions);
+        }
+
+
+        // Check for 3D clicks / proximity interactions
+        function checkRaycastInteractions() {
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera); // Center screen reticle
+
+            const intersects = raycaster.intersectObjects(scene.children, true);
+            let found = false;
+
+            for (let i = 0; i < intersects.length; i++) {
+                let obj = intersects[i].object;
+                while (obj && !obj.userData.speciesId && obj.parent) {
+                    obj = obj.parent;
+                }
+
+                if (obj && obj.userData.speciesId) {
+                    triggerDiscovery(obj.userData.speciesId);
+                    found = true;
+                    break;
+                }
+            }
+
+            // Proximity Fallback check if user is near creatures
+            if (!found) {
+                interactiveObjects.forEach(obj => {
+                    const dist = cameraGroup.position.distanceTo(obj.position);
+                    if (dist <= obj.userData.radius) {
+                        triggerDiscovery(obj.userData.speciesId);
+                    }
+                });
+            }
+        }
+
+        // Trigger Discovery & Show Glass Info Card Modal
+        function triggerDiscovery(speciesId) {
+            const species = SPECIES_DATA.find(s => s.id === speciesId);
+            if (!species) return;
+
+            if (!species.discovered) {
+                species.discovered = true;
+                currentDiscoveredCount++;
+                audioEngine.playChime();
+                updateDiscoveryUI();
+            }
+
+            // If whale, trigger special deep call sound
+            if (speciesId === 'giant_whale') {
+                audioEngine.playWhaleCall();
+            }
+
+            // Pop up Modal
+            const modal = document.getElementById('info-modal');
+            document.getElementById('modal-title').textContent = species.name;
+            document.getElementById('modal-zone').textContent = species.zone;
+            document.getElementById('modal-desc').textContent = species.desc;
+
+            modal.classList.remove('opacity-0', 'translate-y-8', 'pointer-events-none');
+            modal.classList.add('opacity-100', 'translate-y-0', 'pointer-events-auto');
+        }
+
+        // Update HUD & Discovery Journal
+        function updateDiscoveryUI() {
+            document.getElementById('discovery-counter-hud').textContent = `${currentDiscoveredCount} / ${SPECIES_DATA.length} Found`;
+            
+            const progress = Math.round((currentDiscoveredCount / SPECIES_DATA.length) * 100);
+            document.getElementById('journal-progress-text').textContent = `${progress}%`;
+            document.getElementById('journal-progress-bar').style.width = `${progress}%`;
+
+            const list = document.getElementById('journal-list');
+            list.innerHTML = '';
+
+            SPECIES_DATA.forEach(s => {
+                const card = document.createElement('div');
+                card.className = `p-3.5 rounded-2xl border transition-all flex items-center justify-between ${
+                    s.discovered 
+                    ? 'bg-cyan-950/50 border-cyan-500/40 text-sky-100' 
+                    : 'bg-black/30 border-white/10 text-sky-300/40 opacity-60'
+                }`;
+
+                card.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-400/30 flex items-center justify-center text-cyan-300 text-base">
+                            <i class="fa-solid ${s.icon}"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-sm ${s.discovered ? 'text-white' : 'text-sky-300/50'}">${s.name}</h4>
+                            <span class="text-[10px] text-cyan-400/70">${s.zone}</span>
+                        </div>
+                    </div>
+                    <span class="text-xs font-semibold ${s.discovered ? 'text-teal-300' : 'text-slate-500'}">
+                        ${s.discovered ? '<i class="fa-solid fa-circle-check"></i>' : 'Locked'}
+                    </span>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+
+        // Dynamic Zone Management based on Camera Y position
+        function updateDepthAndZone() {
+            // Depth in meters (Y = 3 at surface = 0m depth, Y = -50 = ~53m depth)
+            const currentDepth = Math.max(0, Math.round((3 - cameraGroup.position.y) * 1.1 * 10) / 10);
+            document.getElementById('depth-meter').textContent = `${currentDepth.toFixed(1)} m`;
+
+            let currentZoneKey = 1;
+            if (currentDepth > ZONES[2].maxDepth) {
+                currentZoneKey = 3;
+            } else if (currentDepth > ZONES[1].maxDepth) {
+                currentZoneKey = 2;
+            }
+
+            const zone = ZONES[currentZoneKey];
+            document.getElementById('zone-badge').textContent = zone.name;
+
+            // Smoothly update Fog and Background color
+            const targetColor = new THREE.Color(zone.fogColor);
+            scene.fog.color.lerp(targetColor, 0.05);
+            scene.background.lerp(targetColor, 0.05);
+            scene.fog.density = THREE.MathUtils.lerp(scene.fog.density, zone.fogDensity, 0.05);
+        }
+
+        // Setup DOM UI Button Handlers
+        function setupUIHandlers() {
+            // Start desktop exploration button
+            document.getElementById('btn-start-desktop').addEventListener('click', () => {
+                audioEngine.init();
+                document.getElementById('start-screen').classList.add('opacity-0', 'pointer-events-none');
+                document.getElementById('hud').classList.remove('opacity-0');
+                document.getElementById('hud').classList.add('opacity-100');
+            });
+
+            // Enter VR button WebXR check
+            const enterVrBtn = document.getElementById('btn-enter-vr');
+            const hudVrBtn = document.getElementById('btn-hud-vr');
+
+            if ('xr' in navigator) {
+                navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
+                    if (!supported) {
+                        enterVrBtn.innerHTML = `<i class="fa-solid fa-desktop"></i><span>START 3D MODE</span>`;
+                    }
+                });
+            } else {
+                enterVrBtn.innerHTML = `<i class="fa-solid fa-desktop"></i><span>START 3D MODE</span>`;
+            }
+
+            enterVrBtn.addEventListener('click', () => {
+                audioEngine.init();
+                document.getElementById('start-screen').classList.add('opacity-0', 'pointer-events-none');
+                document.getElementById('hud').classList.remove('opacity-0');
+                document.getElementById('hud').classList.add('opacity-100');
+
+                // Try WebXR session if available
+                if (navigator.xr) {
+                    navigator.xr.requestSession('immersive-vr', { optionalFeatures: ['local-floor', 'bounded-floor'] })
+                        .then((session) => renderer.xr.setSession(session))
+                        .catch(() => console.log("VR Session fallback to Desktop 3D"));
+                }
+            });
+
+            hudVrBtn.addEventListener('click', () => {
+                if (navigator.xr) {
+                    navigator.xr.requestSession('immersive-vr')
+                        .then((session) => renderer.xr.setSession(session))
+                        .catch(() => alert("WebXR headset not detected. Enjoying Desktop 3D Mode!"));
+                }
+            });
+
+            // Audio Toggle
+            document.getElementById('btn-toggle-audio').addEventListener('click', () => {
+                const muted = audioEngine.toggleMute();
+                const icon = document.getElementById('icon-audio');
+                icon.className = muted ? "fa-solid fa-volume-xmark text-red-400" : "fa-solid fa-volume-high text-base";
+            });
+
+            // Comfort Mode Toggle
+            document.getElementById('btn-toggle-comfort').addEventListener('click', () => {
+                isComfortMode = !isComfortMode;
+                document.getElementById('vr-vignette').style.opacity = isComfortMode ? "1" : "0";
+            });
+
+            // Journal Drawer
+            const drawer = document.getElementById('journal-drawer');
+            document.getElementById('btn-open-journal').addEventListener('click', () => {
+                drawer.classList.remove('translate-x-full');
+            });
+            document.getElementById('btn-close-journal').addEventListener('click', () => {
+                drawer.classList.add('translate-x-full');
+            });
+
+            // Close Info Modal
+            document.getElementById('btn-close-modal').addEventListener('click', () => {
+                document.getElementById('info-modal').classList.add('opacity-0', 'translate-y-8', 'pointer-events-none');
+            });
+        }
+
+
+        // Camera movement based on WASD keys
+        function updateCameraMovement(delta) {
+            const moveSpeed = 8.0 * delta;
+            const dir = new THREE.Vector3();
+            camera.getWorldDirection(dir);
+
+            const sideDir = new THREE.Vector3(-dir.z, 0, dir.x).normalize();
+
+            if (keys.w) cameraGroup.position.addScaledVector(dir, moveSpeed);
+            if (keys.s) cameraGroup.position.addScaledVector(dir, -moveSpeed);
+            if (keys.a) cameraGroup.position.addScaledVector(sideDir, -moveSpeed);
+            if (keys.d) cameraGroup.position.addScaledVector(sideDir, moveSpeed);
+            
+            // Vertical Ascend / Descend
+            if (keys.q) cameraGroup.position.y += moveSpeed * 0.8;
+            if (keys.e) cameraGroup.position.y -= moveSpeed * 0.8;
+
+            // Clamp vertical camera bounds to remain underwater environment
+            cameraGroup.position.y = Math.max(-52, Math.min(4, cameraGroup.position.y));
+        }
+
+        // Highlight reticle when looking at interactive creature
+        function updateReticleHover() {
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+
+            const intersects = raycaster.intersectObjects(scene.children, true);
+            let hovering = false;
+
+            for (let i = 0; i < intersects.length; i++) {
+                let obj = intersects[i].object;
+                while (obj && !obj.userData.speciesId && obj.parent) {
+                    obj = obj.parent;
+                }
+                if (obj && obj.userData.speciesId) {
+                    hovering = true;
+                    break;
+                }
+            }
+
+            const reticle = document.getElementById('reticle');
+            if (hovering) {
+                reticle.classList.add('active');
+            } else {
+                reticle.classList.remove('active');
+            }
+        }
+
+        // Main Animation Render Loop
+        function animate() {
+            const delta = clock.getDelta();
+            const time = clock.getElapsedTime();
+
+            // Update creature animations
+            animatedCreatures.forEach(c => c.update(time));
+
+            // Update WASD camera movement
+            updateCameraMovement(delta);
+
+            // Update depth meter & zone transitions
+            updateDepthAndZone();
+
+            // Update interaction reticle highlight
+            updateReticleHover();
+
+            // Render 3D Frame
+            renderer.render(scene, camera);
+        }
+
+        // Window Resize
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // Start initialization on window load
+        window.onload = () => {
+            initEngine();
+            updateDiscoveryUI();
+        };
+    </script>
+</body>
+</html>

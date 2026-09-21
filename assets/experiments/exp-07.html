@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Space Invaders Arcade</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for Retro Pixel & Arcade Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Press Start 2P', monospace;
+            background-color: #03030c;
+            color: #ffffff;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+            overflow-x: hidden;
+        }
+
+        .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* Neon Glow Effects */
+        .glow-green {
+            text-shadow: 0 0 10px #00ff66, 0 0 20px #00ff66, 0 0 30px #00ff66;
+        }
+
+        .glow-pink {
+            text-shadow: 0 0 10px #ff007f, 0 0 20px #ff007f;
+        }
+
+        .glow-cyan {
+            text-shadow: 0 0 10px #00f3ff, 0 0 20px #00f3ff;
+        }
+
+        /* Arcade Border & Box Style */
+        .arcade-card {
+            background: rgba(12, 16, 36, 0.9);
+            border: 2px solid #00ff66;
+            box-shadow: 0 0 20px rgba(0, 255, 102, 0.3), inset 0 0 15px rgba(0, 255, 102, 0.15);
+            border-radius: 12px;
+        }
+
+        /* Canvas Screen Container */
+        #gameCanvas {
+            background: #020208;
+            border: 4px solid #1a2247;
+            box-shadow: 0 0 30px rgba(0, 255, 102, 0.25), inset 0 0 40px rgba(0, 0, 0, 0.9);
+            border-radius: 12px;
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* Arcade Buttons */
+        .arcade-btn {
+            background: linear-gradient(180deg, #1d2752 0%, #0d122b 100%);
+            border: 2px solid #00ff66;
+            box-shadow: 0 4px 0 #00993d, 0 0 12px rgba(0, 255, 102, 0.3);
+            transition: all 0.08s ease;
+        }
+
+        .arcade-btn:active, .arcade-btn.active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 #00993d, 0 0 18px rgba(0, 255, 102, 0.6);
+            background: linear-gradient(180deg, #00ff66 0%, #00993d 100%);
+            color: #000;
+        }
+
+        .fire-btn {
+            background: linear-gradient(180deg, #ff0055 0%, #a00035 100%);
+            border: 2px solid #ff6699;
+            box-shadow: 0 4px 0 #700025, 0 0 12px rgba(255, 0, 85, 0.4);
+        }
+
+        .fire-btn:active, .fire-btn.active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 #700025, 0 0 18px rgba(255, 0, 85, 0.8);
+            background: linear-gradient(180deg, #ff6699 0%, #ff0055 100%);
+        }
+
+        /* Scanline Overlay Effect */
+        .scanlines {
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%, 
+                rgba(0, 0, 0, 0.35) 50%
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between p-2 sm:p-4 select-none">
+
+    <!-- Header Navigation & Title -->
+    <header class="w-full max-w-2xl flex items-center justify-between mb-2 px-2">
+        <div class="flex items-center space-x-2">
+            <i class="fa-solid fa-shuttle-space text-green-400 text-xl sm:text-2xl animate-pulse"></i>
+            <h1 class="text-base sm:text-xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-green-400 via-cyan-400 to-pink-500">
+                SPACE<span class="text-white">INVADERS</span>
+            </h1>
+        </div>
+        <div class="flex items-center space-x-2">
+            <button id="soundToggleBtn" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-green-400 hover:bg-slate-800 transition">
+                <i id="soundIcon" class="fa-solid fa-volume-high text-xs"></i>
+            </button>
+            <button id="infoBtn" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-green-400 hover:bg-slate-800 transition">
+                <i class="fa-solid fa-circle-info text-xs"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Game Section -->
+    <main class="relative w-full max-w-2xl flex flex-col items-center">
+        
+        <!-- Scoreboard Bar -->
+        <div class="w-full arcade-card p-3 mb-3 flex justify-between items-center text-center text-[10px] sm:text-xs">
+            <!-- Score Display -->
+            <div class="flex flex-col items-start pl-1">
+                <span class="text-green-400 text-[8px] sm:text-[10px] font-orbitron font-bold tracking-widest">SCORE</span>
+                <span id="scoreDisplay" class="text-yellow-300 text-sm sm:text-base font-bold leading-tight">000000</span>
+            </div>
+
+            <!-- Wave Level -->
+            <div class="flex flex-col items-center">
+                <span class="text-cyan-400 text-[8px] sm:text-[10px] font-orbitron font-bold tracking-widest">WAVE</span>
+                <span id="waveDisplay" class="text-cyan-300 text-sm sm:text-base font-bold leading-tight">01</span>
+            </div>
+
+            <!-- High Score Display -->
+            <div class="flex flex-col items-end pr-1">
+                <span class="text-green-400 text-[8px] sm:text-[10px] font-orbitron font-bold tracking-widest">HIGH SCORE</span>
+                <span id="highScoreDisplay" class="text-green-400 glow-green text-sm sm:text-base font-bold leading-tight">000000</span>
+            </div>
+        </div>
+
+        <!-- Canvas Display Container -->
+        <div class="relative w-full flex justify-center items-center">
+            <canvas id="gameCanvas" width="800" height="600" class="w-full h-auto max-h-[70vh] object-contain"></canvas>
+            <div class="absolute inset-0 scanlines rounded-xl pointer-events-none"></div>
+
+            <!-- Lives Counter Floating Overlay -->
+            <div class="absolute top-3 left-4 flex items-center space-x-2 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-lg border border-green-500/30">
+                <span class="text-[9px] text-green-400 font-orbitron font-bold mr-1">LIVES:</span>
+                <div id="livesContainer" class="flex space-x-2 items-center">
+                    <!-- Spaceship icons rendered dynamically -->
+                </div>
+            </div>
+
+            <!-- Start Overlay Screen -->
+            <div id="startOverlay" class="absolute inset-0 bg-slate-950/90 backdrop-blur-md rounded-xl flex flex-col items-center justify-center p-6 text-center z-10 transition-opacity duration-300">
+                <div class="w-16 h-16 mb-4 rounded-full bg-gradient-to-tr from-green-400 to-cyan-500 p-1 flex items-center justify-center animate-pulse">
+                    <div class="w-full h-full bg-slate-900 rounded-full flex items-center justify-center">
+                        <i class="fa-solid fa-space-shuttle text-3xl text-green-400 -rotate-90"></i>
+                    </div>
+                </div>
+                <h2 class="text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 via-cyan-400 to-pink-500 mb-3">
+                    SPACE INVADERS
+                </h2>
+                <p class="text-[10px] sm:text-xs text-slate-300 mb-6 max-w-xs leading-relaxed">
+                    DEFEND EARTH FROM THE ALIEN INVASION! DESTROY ALL ENEMIES BEFORE THEY REACH YOUR SHIELDS.
+                </p>
+                <button id="startGameBtn" class="arcade-btn px-6 py-3 rounded-xl text-xs sm:text-sm font-extrabold text-white tracking-wider flex items-center space-x-2 cursor-pointer">
+                    <i class="fa-solid fa-play"></i>
+                    <span>START GAME</span>
+                </button>
+            </div>
+
+            <!-- Game Over / Level Complete Overlay Screen -->
+            <div id="gameOverOverlay" class="absolute inset-0 bg-slate-950/95 backdrop-blur-md rounded-xl flex flex-col items-center justify-center p-6 text-center z-20 hidden">
+                <h2 id="gameOverTitle" class="text-2xl sm:text-3xl font-black text-pink-500 glow-pink mb-2">GAME OVER</h2>
+                <p id="gameOverSub" class="text-[10px] text-slate-400 mb-6 uppercase tracking-widest">THE INVASION HAS SUCCEEDED</p>
+
+                <div class="w-full max-w-xs bg-slate-900/90 border border-slate-700 rounded-xl p-4 mb-6 space-y-3">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-slate-400 font-orbitron">FINAL SCORE</span>
+                        <span id="finalScore" class="text-yellow-300 font-bold text-base">000000</span>
+                    </div>
+                    <div id="newHighContainer" class="hidden text-[10px] bg-green-950/80 border border-green-500/50 text-green-300 font-bold py-1.5 px-3 rounded-lg text-center animate-bounce">
+                        🎉 NEW HIGH SCORE! 🎉
+                    </div>
+                    <div class="flex justify-between items-center text-xs pt-2 border-t border-slate-800">
+                        <span class="text-slate-400 font-orbitron">HIGH SCORE</span>
+                        <span id="bestScore" class="text-green-400 font-bold text-sm">000000</span>
+                    </div>
+                </div>
+
+                <button id="playAgainBtn" class="arcade-btn px-6 py-3 rounded-xl text-xs sm:text-sm font-extrabold text-white tracking-wider flex items-center space-x-2 cursor-pointer">
+                    <i class="fa-solid fa-rotate-right"></i>
+                    <span>PLAY AGAIN</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Interactive Controls (Mobile / On-Screen Touch Buttons) -->
+        <div class="w-full grid grid-cols-3 gap-3 mt-3">
+            <button id="leftBtn" class="arcade-btn py-3.5 rounded-xl text-xs font-bold text-green-300 flex flex-col items-center justify-center active:scale-95">
+                <i class="fa-solid fa-arrow-left text-base mb-1"></i>
+                <span class="text-[8px] text-slate-400 tracking-wider">LEFT (A / ◄)</span>
+            </button>
+
+            <button id="fireBtn" class="fire-btn py-3.5 rounded-xl text-xs font-bold text-white flex flex-col items-center justify-center active:scale-95">
+                <i class="fa-solid fa-crosshairs text-base mb-1"></i>
+                <span class="text-[8px] text-pink-200 tracking-wider">SHOOT (SPACE)</span>
+            </button>
+
+            <button id="rightBtn" class="arcade-btn py-3.5 rounded-xl text-xs font-bold text-green-300 flex flex-col items-center justify-center active:scale-95">
+                <i class="fa-solid fa-arrow-right text-base mb-1"></i>
+                <span class="text-[8px] text-slate-400 tracking-wider">RIGHT (D / ►)</span>
+            </button>
+        </div>
+    </main>
+
+    <!-- Info / Controls Modal -->
+    <div id="infoModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="arcade-card p-6 max-w-sm w-full relative">
+            <button id="closeInfoBtn" class="absolute top-4 right-4 text-slate-400 hover:text-white text-base">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <h3 class="text-sm font-bold text-green-400 mb-4 flex items-center space-x-2">
+                <i class="fa-solid fa-circle-info"></i>
+                <span>HOW TO PLAY</span>
+            </h3>
+            <ul class="text-[10px] text-slate-300 space-y-3 leading-relaxed mb-6">
+                <li class="flex items-start space-x-2">
+                    <span class="text-green-400 font-bold">1.</span>
+                    <span>Use <strong class="text-white">A / D</strong> or <strong class="text-white">Left/Right Arrow</strong> to move your ship.</span>
+                </li>
+                <li class="flex items-start space-x-2">
+                    <span class="text-green-400 font-bold">2.</span>
+                    <span>Press <strong class="text-white">SPACEBAR</strong> or tap <strong class="text-pink-400">SHOOT</strong> to fire lasers.</span>
+                </li>
+                <li class="flex items-start space-x-2">
+                    <span class="text-green-400 font-bold">3.</span>
+                    <span>Use green bunker shields for shelter, but beware—they take damage from enemy fire!</span>
+                </li>
+                <li class="flex items-start space-x-2">
+                    <span class="text-green-400 font-bold">4.</span>
+                    <span>Eliminate the invading fleet before they descend to Earth!</span>
+                </li>
+            </ul>
+            <button id="gotItBtn" class="w-full arcade-btn py-2.5 rounded-lg text-xs font-bold text-white">
+                GOT IT
+            </button>
+        </div>
+    </div>
+
+    <script>
+        /* Web Audio Synthesizer for Authentic Arcade Sound FX */
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioCtx();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playLaser() {
+                if (this.muted) return;
+                this.init();
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(880, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(110, this.ctx.currentTime + 0.12);
+                    gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.12);
+                } catch(e){}
+            }
+
+            playAlienHit() {
+                if (this.muted) return;
+                this.init();
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.15);
+                    gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.15);
+                } catch(e){}
+            }
+
+            playPlayerHit() {
+                if (this.muted) return;
+                this.init();
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(60, this.ctx.currentTime + 0.4);
+                    gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.4);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.4);
+                } catch(e){}
+            }
+
+            playAlienStep(noteIndex) {
+                if (this.muted) return;
+                this.init();
+                try {
+                    const freqs = [160, 145, 130, 115];
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(freqs[noteIndex % 4], this.ctx.currentTime);
+                    gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.08);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.08);
+                } catch(e){}
+            }
+
+            playUfo() {
+                if (this.muted) return;
+                this.init();
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(600, this.ctx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(900, this.ctx.currentTime + 0.2);
+                    gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.2);
+                } catch(e){}
+            }
+
+            playLevelWin() {
+                if (this.muted) return;
+                this.init();
+                const notes = [261, 329, 392, 523];
+                notes.forEach((f, i) => {
+                    setTimeout(() => {
+                        try {
+                            const osc = this.ctx.createOscillator();
+                            const gain = this.ctx.createGain();
+                            osc.type = 'triangle';
+                            osc.frequency.setValueAtTime(f, this.ctx.currentTime);
+                            gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+                            osc.connect(gain);
+                            gain.connect(this.ctx.destination);
+                            osc.start();
+                            osc.stop(this.ctx.currentTime + 0.15);
+                        } catch(e){}
+                    }, i * 100);
+                });
+            }
+        }
+
+        const audio = new SoundEngine();
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const CANVAS_WIDTH = 800;
+        const CANVAS_HEIGHT = 600;
+
+        // Game State Variables
+        let score = 0;
+        let wave = 1;
+        let lives = 3;
+        let highScore = parseInt(localStorage.getItem('space_invaders_highscore') || '0', 10);
+        let gameState = 'START'; // 'START', 'PLAYING', 'LEVEL_COMPLETE', 'GAME_OVER'
+
+        // Input Tracking
+        const keys = { left: false, right: false, fire: false };
+
+        // UI Elements
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const waveDisplay = document.getElementById('waveDisplay');
+        const highScoreDisplay = document.getElementById('highScoreDisplay');
+        const livesContainer = document.getElementById('livesContainer');
+        const startOverlay = document.getElementById('startOverlay');
+        const gameOverOverlay = document.getElementById('gameOverOverlay');
+        const gameOverTitle = document.getElementById('gameOverTitle');
+        const gameOverSub = document.getElementById('gameOverSub');
+        const finalScoreEl = document.getElementById('finalScore');
+        const bestScoreEl = document.getElementById('bestScore');
+        const newHighContainer = document.getElementById('newHighContainer');
+
+        // Starfield background
+        const stars = [];
+        for (let i = 0; i < 70; i++) {
+            stars.push({
+                x: Math.random() * CANVAS_WIDTH,
+                y: Math.random() * CANVAS_HEIGHT,
+                size: Math.random() * 2 + 0.5,
+                speed: Math.random() * 0.5 + 0.1,
+                alpha: Math.random()
+            });
+        }
+
+        function updateStars() {
+            stars.forEach(star => {
+                star.y += star.speed;
+                if (star.y > CANVAS_HEIGHT) star.y = 0;
+                star.alpha += (Math.random() - 0.5) * 0.05;
+                if (star.alpha < 0.2) star.alpha = 0.2;
+                if (star.alpha > 1) star.alpha = 1;
+            });
+        }
+
+        function drawStars() {
+            stars.forEach(star => {
+                ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
+                ctx.fillRect(star.x, star.y, star.size, star.size);
+            });
+        }
+
+        // Player Spaceship
+        class Player {
+            constructor() {
+                this.width = 44;
+                this.height = 24;
+                this.x = CANVAS_WIDTH / 2 - this.width / 2;
+                this.y = CANVAS_HEIGHT - 55;
+                this.speed = 6;
+                this.cooldown = 0;
+                this.hitTimer = 0;
+            }
+
+            reset() {
+                this.x = CANVAS_WIDTH / 2 - this.width / 2;
+                this.cooldown = 0;
+                this.hitTimer = 0;
+            }
+
+            update() {
+                if (this.hitTimer > 0) this.hitTimer--;
+
+                if (keys.left && this.x > 15) {
+                    this.x -= this.speed;
+                }
+                if (keys.right && this.x < CANVAS_WIDTH - this.width - 15) {
+                    this.x += this.speed;
+                }
+
+                if (this.cooldown > 0) this.cooldown--;
+
+                if (keys.fire && this.cooldown === 0) {
+                    bullets.push(new Bullet(this.x + this.width / 2 - 2, this.y, -11, true));
+                    audio.playLaser();
+                    this.cooldown = 16; // Cooldown frames
+                }
+            }
+
+            draw() {
+                if (this.hitTimer % 4 >= 2) return; // Invulnerability flicker
+
+                ctx.save();
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#00ff66';
+
+                // Futuristic Arcade Ship Sprite
+                const cx = this.x + this.width / 2;
+                const topY = this.y;
+                const botY = this.y + this.height;
+
+                // Main Wing Body
+                ctx.fillStyle = '#00ff66';
+                ctx.beginPath();
+                ctx.moveTo(cx, topY);
+                ctx.lineTo(this.x + this.width, botY);
+                ctx.lineTo(this.x + this.width - 6, botY);
+                ctx.lineTo(cx + 8, topY + 12);
+                ctx.lineTo(cx - 8, topY + 12);
+                ctx.lineTo(this.x + 6, botY);
+                ctx.lineTo(this.x, botY);
+                ctx.closePath();
+                ctx.fill();
+
+                // Cannon Nose
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(cx - 3, topY - 4, 6, 8);
+
+                // Cockpit Core
+                ctx.fillStyle = '#00f3ff';
+                ctx.fillRect(cx - 5, topY + 8, 10, 6);
+
+                ctx.restore();
+            }
+        }
+
+        // Laser Bullets
+        class Bullet {
+            constructor(x, y, vy, isPlayer) {
+                this.x = x;
+                this.y = y;
+                this.width = isPlayer ? 4 : 4;
+                this.height = isPlayer ? 14 : 12;
+                this.vy = vy;
+                this.isPlayer = isPlayer;
+                this.active = true;
+            }
+
+            update() {
+                this.y += this.vy;
+                if (this.y < -20 || this.y > CANVAS_HEIGHT + 20) {
+                    this.active = false;
+                }
+            }
+
+            draw() {
+                ctx.save();
+                if (this.isPlayer) {
+                    ctx.shadowBlur = 8;
+                    ctx.shadowColor = '#00f3ff';
+                    ctx.fillStyle = '#00f3ff';
+                    ctx.fillRect(this.x, this.y, this.width, this.height);
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(this.x + 1, this.y + 2, this.width - 2, this.height - 4);
+                } else {
+                    ctx.shadowBlur = 8;
+                    ctx.shadowColor = '#ff0055';
+                    ctx.fillStyle = '#ff0055';
+                    // Zigzag laser effect for alien fire
+                    ctx.beginPath();
+                    ctx.fillRect(this.x, this.y, this.width, this.height);
+                }
+                ctx.restore();
+            }
+        }
+
+        // Alien Pixel Art Maps (Frame 1 and Frame 2)
+        const ALIEN_SPRITES = [
+            // Row 0: Top Squid (30 pts)
+            {
+                color: '#ff007f',
+                points: 30,
+                f1: [
+                    "  1111  ",
+                    " 111111 ",
+                    "11111111",
+                    "11 11 11",
+                    "11111111",
+                    "  1  1  ",
+                    " 1 11 1 ",
+                    "1 1  1 1"
+                ],
+                f2: [
+                    "  1111  ",
+                    " 111111 ",
+                    "11111111",
+                    "11 11 11",
+                    "11111111",
+                    " 1 11 1 ",
+                    "1      1",
+                    " 1    1 "
+                ]
+            },
+            // Row 1 & 2: Crab (20 pts)
+            {
+                color: '#00f3ff',
+                points: 20,
+                f1: [
+                    "  1    1  ",
+                    "   1  1   ",
+                    "  111111  ",
+                    " 11 11 11 ",
+                    "1111111111",
+                    "1 111111 1",
+                    "1 1    1 1",
+                    "   1111   "
+                ],
+                f2: [
+                    "  1    1  ",
+                    "1  1  1  1",
+                    "1 111111 1",
+                    "111 11 111",
+                    "1111111111",
+                    " 11111111 ",
+                    "  1    1  ",
+                    " 1      1 "
+                ]
+            },
+            // Row 3 & 4: Octopus (10 pts)
+            {
+                color: '#ffdd00',
+                points: 10,
+                f1: [
+                    "  111111  ",
+                    " 11111111 ",
+                    "1111111111",
+                    "111  11111",
+                    "1111111111",
+                    "  11  11  ",
+                    " 11    11 ",
+                    "11      11"
+                ],
+                f2: [
+                    "  111111  ",
+                    " 11111111 ",
+                    "1111111111",
+                    "111  11111",
+                    "1111111111",
+                    "   1111   ",
+                    "  11  11  ",
+                    " 11    11 "
+                ]
+            }
+        ];
+
+        class Alien {
+            constructor(x, y, typeIndex, row) {
+                this.x = x;
+                this.y = y;
+                this.typeIndex = typeIndex;
+                this.row = row;
+                this.width = 32;
+                this.height = 24;
+                this.active = true;
+                this.sprite = ALIEN_SPRITES[typeIndex];
+            }
+
+            draw(frame) {
+                if (!this.active) return;
+
+                ctx.save();
+                ctx.fillStyle = this.sprite.color;
+                ctx.shadowBlur = 6;
+                ctx.shadowColor = this.sprite.color;
+
+                const map = frame === 0 ? this.sprite.f1 : this.sprite.f2;
+                const pixelSizeX = this.width / map[0].length;
+                const pixelSizeY = this.height / map.length;
+
+                for (let r = 0; r < map.length; r++) {
+                    for (let c = 0; c < map[r].length; c++) {
+                        if (map[r][c] === '1') {
+                            ctx.fillRect(
+                                this.x + c * pixelSizeX,
+                                this.y + r * pixelSizeY,
+                                pixelSizeX,
+                                pixelSizeY
+                            );
+                        }
+                    }
+                }
+                ctx.restore();
+            }
+        }
+
+        // Alien Fleet Controller
+        class AlienFleet {
+            constructor() {
+                this.aliens = [];
+                this.direction = 1; // 1 = right, -1 = left
+                this.stepTimer = 0;
+                this.stepInterval = 40; // Frames per movement step
+                this.moveDownNext = false;
+                this.frame = 0;
+                this.noteIndex = 0;
+            }
+
+            init(waveLevel) {
+                this.aliens = [];
+                this.direction = 1;
+                this.frame = 0;
+                this.moveDownNext = false;
+                this.noteIndex = 0;
+
+                // Speed increases with higher waves
+                this.stepInterval = Math.max(12, 42 - (waveLevel - 1) * 5);
+
+                const rows = 5;
+                const cols = 10;
+                const startX = 100;
+                const startY = 80 + Math.min(60, (waveLevel - 1) * 15);
+
+                for (let r = 0; r < rows; r++) {
+                    let typeIdx = 0;
+                    if (r === 0) typeIdx = 0; // Top
+                    else if (r <= 2) typeIdx = 1; // Middle
+                    else typeIdx = 2; // Bottom
+
+                    for (let c = 0; c < cols; c++) {
+                        const x = startX + c * 52;
+                        const y = startY + r * 38;
+                        this.aliens.push(new Alien(x, y, typeIdx, r));
+                    }
+                }
+            }
+
+            getActiveCount() {
+                return this.aliens.filter(a => a.active).length;
+            }
+
+            update() {
+                const activeAliens = this.aliens.filter(a => a.active);
+                if (activeAliens.length === 0) return;
+
+                // Adjust speed based on remaining aliens
+                const ratio = activeAliens.length / 50;
+                const currentInterval = Math.max(3, Math.floor(this.stepInterval * ratio));
+
+                this.stepTimer++;
+                if (this.stepTimer >= currentInterval) {
+                    this.stepTimer = 0;
+                    this.frame = (this.frame === 0) ? 1 : 0;
+                    this.noteIndex++;
+
+                    audio.playAlienStep(this.noteIndex);
+
+                    if (this.moveDownNext) {
+                        this.aliens.forEach(a => { if (a.active) a.y += 18; });
+                        this.direction *= -1;
+                        this.moveDownNext = false;
+                    } else {
+                        let reachedEdge = false;
+                        this.aliens.forEach(a => {
+                            if (a.active) {
+                                a.x += this.direction * 14;
+                                if (this.direction === 1 && a.x > CANVAS_WIDTH - 55) reachedEdge = true;
+                                if (this.direction === -1 && a.x < 25) reachedEdge = true;
+                            }
+                        });
+
+                        if (reachedEdge) {
+                            this.moveDownNext = true;
+                        }
+                    }
+                }
+
+                // Alien Bombing Logic
+                if (Math.random() < 0.035 + (wave * 0.005)) {
+                    // Pick a random bottom-most active alien
+                    const columns = {};
+                    activeAliens.forEach(a => {
+                        const colKey = Math.round(a.x);
+                        if (!columns[colKey] || columns[colKey].y < a.y) {
+                            columns[colKey] = a;
+                        }
+                    });
+
+                    const bottomAliens = Object.values(columns);
+                    if (bottomAliens.length > 0) {
+                        const shooter = bottomAliens[Math.floor(Math.random() * bottomAliens.length)];
+                        bullets.push(new Bullet(shooter.x + shooter.width / 2, shooter.y + shooter.height, 5.5 + wave * 0.5, false));
+                    }
+                }
+            }
+
+            draw() {
+                this.aliens.forEach(a => a.draw(this.frame));
+            }
+        }
+
+        // Destructible Bunker Shield
+        class Bunker {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.width = 64;
+                this.height = 48;
+                this.grid = [];
+                this.rows = 12;
+                this.cols = 16;
+                this.pixelW = this.width / this.cols;
+                this.pixelH = this.height / this.rows;
+
+                // Classic Arch Bunker Shape
+                for (let r = 0; r < this.rows; r++) {
+                    this.grid[r] = [];
+                    for (let c = 0; c < this.cols; c++) {
+                        let active = true;
+                        // Top rounded corners
+                        if (r === 0 && (c < 3 || c >= this.cols - 3)) active = false;
+                        if (r === 1 && (c < 1 || c >= this.cols - 1)) active = false;
+                        // Center Arch Cutout
+                        if (r >= 7 && c >= 5 && c < 11) active = false;
+
+                        this.grid[r][c] = active;
+                    }
+                }
+            }
+
+            damage(px, py, radius = 2) {
+                const col = Math.floor((px - this.x) / this.pixelW);
+                const row = Math.floor((py - this.y) / this.pixelH);
+
+                let hit = false;
+                for (let r = row - radius; r <= row + radius; r++) {
+                    for (let c = col - radius; c <= col + radius; c++) {
+                        if (r >= 0 && r < this.rows && c >= 0 && c < this.cols) {
+                            if (this.grid[r][c]) {
+                                if (Math.random() < 0.85) this.grid[r][c] = false;
+                                hit = true;
+                            }
+                        }
+                    }
+                }
+                return hit;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.fillStyle = '#00ff66';
+                ctx.shadowBlur = 4;
+                ctx.shadowColor = '#00ff66';
+
+                for (let r = 0; r < this.rows; r++) {
+                    for (let c = 0; c < this.cols; c++) {
+                        if (this.grid[r][c]) {
+                            ctx.fillRect(
+                                this.x + c * this.pixelW,
+                                this.y + r * this.pixelH,
+                                this.pixelW,
+                                this.pixelH
+                            );
+                        }
+                    }
+                }
+                ctx.restore();
+            }
+        }
+
+        // Red UFO Mystery Ship
+        class UFO {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.active = false;
+                this.width = 48;
+                this.height = 20;
+                this.x = -60;
+                this.y = 50;
+                this.speed = 2.5;
+                this.spawnTimer = 0;
+            }
+
+            update() {
+                if (!this.active) {
+                    this.spawnTimer++;
+                    if (this.spawnTimer > 900) { // Every ~15 seconds
+                        if (Math.random() < 0.01) {
+                            this.active = true;
+                            this.spawnTimer = 0;
+                            this.x = -50;
+                            audio.playUfo();
+                        }
+                    }
+                } else {
+                    this.x += this.speed;
+                    if (this.x > CANVAS_WIDTH + 60) {
+                        this.active = false;
+                    }
+                }
+            }
+
+            draw() {
+                if (!this.active) return;
+
+                ctx.save();
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#ff0055';
+                ctx.fillStyle = '#ff0055';
+
+                // Saucer geometry
+                const cx = this.x + this.width / 2;
+                ctx.beginPath();
+                ctx.ellipse(cx, this.y + 10, 24, 8, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.ellipse(cx, this.y + 6, 12, 6, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+        }
+
+        // Particles and Visual Effects
+        let particles = [];
+        let scorePopups = [];
+
+        function createExplosion(x, y, color, count = 14) {
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 4 + 1;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    color: color,
+                    life: 1.0,
+                    decay: Math.random() * 0.05 + 0.03
+                });
+            }
+        }
+
+        function createScorePopup(x, y, text) {
+            scorePopups.push({
+                x: x,
+                y: y,
+                text: text,
+                life: 1.0,
+                decay: 0.02
+            });
+        }
+
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= p.decay;
+                if (p.life <= 0) particles.splice(i, 1);
+            }
+
+            for (let i = scorePopups.length - 1; i >= 0; i--) {
+                const sp = scorePopups[i];
+                sp.y -= 0.6;
+                sp.life -= sp.decay;
+                if (sp.life <= 0) scorePopups.splice(i, 1);
+            }
+        }
+
+        function drawParticles() {
+            particles.forEach(p => {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, p.life);
+                ctx.fillStyle = p.color;
+                ctx.fillRect(p.x, p.y, 3, 3);
+                ctx.restore();
+            });
+
+            scorePopups.forEach(sp => {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, sp.life);
+                ctx.fillStyle = '#ffdd00';
+                ctx.font = '10px "Press Start 2P"';
+                ctx.fillText(sp.text, sp.x, sp.y);
+                ctx.restore();
+            });
+        }
+
+        // Game Entities
+        const player = new Player();
+        const fleet = new AlienFleet();
+        const ufo = new UFO();
+        let bullets = [];
+        let bunkers = [];
+
+        function initBunkers() {
+            bunkers = [];
+            const spacing = CANVAS_WIDTH / 4;
+            for (let i = 0; i < 4; i++) {
+                bunkers.push(new Bunker(spacing * i + spacing / 2 - 32, 450));
+            }
+        }
+
+        // Collision Helper (AABB)
+        function checkOverlap(rect1, rect2) {
+            return rect1.x < rect2.x + rect2.width &&
+                   rect1.x + rect1.width > rect2.x &&
+                   rect1.y < rect2.y + rect2.height &&
+                   rect1.y + rect1.height > rect2.y;
+        }
+
+        function handleCollisions() {
+            bullets.forEach(b => {
+                if (!b.active) return;
+
+                // 1. Player Bullet vs Alien
+                if (b.isPlayer) {
+                    // Check vs UFO
+                    if (ufo.active && checkOverlap(b, ufo)) {
+                        b.active = false;
+                        ufo.active = false;
+                        const pts = [100, 200, 300][Math.floor(Math.random() * 3)];
+                        addScore(pts);
+                        createExplosion(ufo.x + ufo.width / 2, ufo.y + ufo.height / 2, '#ff0055', 20);
+                        createScorePopup(ufo.x, ufo.y, `+${pts}`);
+                        audio.playAlienHit();
+                    }
+
+                    // Check vs Invaders
+                    fleet.aliens.forEach(a => {
+                        if (a.active && checkOverlap(b, a)) {
+                            b.active = false;
+                            a.active = false;
+                            addScore(a.sprite.points);
+                            createExplosion(a.x + a.width / 2, a.y + a.height / 2, a.sprite.color, 12);
+                            audio.playAlienHit();
+                        }
+                    });
+                } else {
+                    // 2. Enemy Bullet vs Player
+                    if (player.hitTimer === 0 && checkOverlap(b, player)) {
+                        b.active = false;
+                        playerHit();
+                    }
+                }
+
+                // 3. Bullets vs Bunkers
+                bunkers.forEach(bunker => {
+                    if (b.x > bunker.x && b.x < bunker.x + bunker.width &&
+                        b.y > bunker.y && b.y < bunker.y + bunker.height) {
+                        if (bunker.damage(b.x, b.y, 2)) {
+                            b.active = false;
+                        }
+                    }
+                });
+            });
+
+            // 4. Aliens reaching bunkers or player level
+            fleet.aliens.forEach(a => {
+                if (a.active) {
+                    // Destroy bunker parts touched by alien body
+                    bunkers.forEach(bunker => {
+                        if (checkOverlap(a, bunker)) {
+                            bunker.damage(a.x + a.width / 2, a.y + a.height, 4);
+                        }
+                    });
+
+                    // Game Over if alien reaches Earth bottom
+                    if (a.y + a.height >= player.y - 5) {
+                        triggerGameOver(false);
+                    }
+                }
+            });
+
+            // Clean inactive bullets
+            bullets = bullets.filter(b => b.active);
+
+            // Check Wave Complete
+            if (fleet.getActiveCount() === 0 && gameState === 'PLAYING') {
+                triggerLevelComplete();
+            }
+        }
+
+        function playerHit() {
+            audio.playPlayerHit();
+            createExplosion(player.x + player.width / 2, player.y + player.height / 2, '#00ff66', 22);
+            lives--;
+            updateLivesUI();
+
+            if (lives > 0) {
+                player.reset();
+                player.hitTimer = 90; // Invulnerable grace period
+            } else {
+                triggerGameOver(false);
+            }
+        }
+
+        function addScore(pts) {
+            score += pts;
+            scoreDisplay.textContent = score.toString().padStart(6, '0');
+
+            if (score > highScore) {
+                highScore = score;
+                highScoreDisplay.textContent = highScore.toString().padStart(6, '0');
+                localStorage.setItem('space_invaders_highscore', highScore);
+            }
+        }
+
+        function updateLivesUI() {
+            livesContainer.innerHTML = '';
+            for (let i = 0; i < lives; i++) {
+                const icon = document.createElement('i');
+                icon.className = 'fa-solid fa-space-shuttle text-green-400 text-xs -rotate-90 drop-shadow-[0_0_5px_#00ff66]';
+                livesContainer.appendChild(icon);
+            }
+        }
+
+        function triggerLevelComplete() {
+            gameState = 'LEVEL_COMPLETE';
+            audio.playLevelWin();
+            setTimeout(() => {
+                wave++;
+                waveDisplay.textContent = wave.toString().padStart(2, '0');
+                bullets = [];
+                fleet.init(wave);
+                gameState = 'PLAYING';
+            }, 1800);
+        }
+
+        function triggerGameOver(win) {
+            gameState = 'GAME_OVER';
+            finalScoreEl.textContent = score.toString().padStart(6, '0');
+            bestScoreEl.textContent = highScore.toString().padStart(6, '0');
+
+            if (score === highScore && score > 0) {
+                newHighContainer.classList.remove('hidden');
+            } else {
+                newHighContainer.classList.add('hidden');
+            }
+
+            gameOverTitle.textContent = win ? 'VICTORY!' : 'GAME OVER';
+            gameOverTitle.className = win ? 'text-2xl sm:text-3xl font-black text-green-400 glow-green mb-2' : 'text-2xl sm:text-3xl font-black text-pink-500 glow-pink mb-2';
+            gameOverSub.textContent = win ? 'EARTH HAS BEEN SAVED!' : 'THE INVASION HAS SUCCEEDED';
+
+            gameOverOverlay.classList.remove('hidden');
+        }
+
+        function gameLoop() {
+            // Clear Screen
+            ctx.fillStyle = '#020208';
+            ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+            updateStars();
+            drawStars();
+
+            if (gameState === 'PLAYING' || gameState === 'LEVEL_COMPLETE') {
+                player.update();
+                fleet.update();
+                ufo.update();
+                bullets.forEach(b => b.update());
+                handleCollisions();
+                updateParticles();
+            }
+
+            // Draw Everything
+            bunkers.forEach(b => b.draw());
+            fleet.draw();
+            ufo.draw();
+            bullets.forEach(b => b.draw());
+            player.draw();
+            drawParticles();
+
+            // Level Complete Banner Text
+            if (gameState === 'LEVEL_COMPLETE') {
+                ctx.save();
+                ctx.fillStyle = '#00ff66';
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = '#00ff66';
+                ctx.font = '20px "Press Start 2P"';
+                ctx.textAlign = 'center';
+                ctx.fillText(`WAVE ${wave} CLEARED!`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+                ctx.restore();
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Keyboard Input Binding
+        window.addEventListener('keydown', e => {
+            if (e.code === 'KeyA' || e.code === 'ArrowLeft') keys.left = true;
+            if (e.code === 'KeyD' || e.code === 'ArrowRight') keys.right = true;
+            if (e.code === 'Space' || e.code === 'ArrowUp') {
+                e.preventDefault();
+                keys.fire = true;
+            }
+        });
+
+        window.addEventListener('keyup', e => {
+            if (e.code === 'KeyA' || e.code === 'ArrowLeft') keys.left = false;
+            if (e.code === 'KeyD' || e.code === 'ArrowRight') keys.right = false;
+            if (e.code === 'Space' || e.code === 'ArrowUp') keys.fire = false;
+        });
+
+        // Touch Control Helper
+        function bindTouchBtn(id, keyName) {
+            const btn = document.getElementById(id);
+            btn.addEventListener('touchstart', e => { e.preventDefault(); keys[keyName] = true; btn.classList.add('active'); });
+            btn.addEventListener('touchend', e => { e.preventDefault(); keys[keyName] = false; btn.classList.remove('active'); });
+            btn.addEventListener('mousedown', e => { e.preventDefault(); keys[keyName] = true; btn.classList.add('active'); });
+            btn.addEventListener('mouseup', e => { e.preventDefault(); keys[keyName] = false; btn.classList.remove('active'); });
+            btn.addEventListener('mouseleave', () => { keys[keyName] = false; btn.classList.remove('active'); });
+        }
+
+        bindTouchBtn('leftBtn', 'left');
+        bindTouchBtn('rightBtn', 'right');
+        bindTouchBtn('fireBtn', 'fire');
+
+        // Game Reset & Start
+        function startNewGame() {
+            audio.init();
+            score = 0;
+            wave = 1;
+            lives = 3;
+            bullets = [];
+            particles = [];
+            scorePopups = [];
+
+            scoreDisplay.textContent = '000000';
+            waveDisplay.textContent = '01';
+            highScoreDisplay.textContent = highScore.toString().padStart(6, '0');
+            updateLivesUI();
+
+            player.reset();
+            fleet.init(wave);
+            ufo.reset();
+            initBunkers();
+
+            gameState = 'PLAYING';
+            startOverlay.classList.add('hidden');
+            gameOverOverlay.classList.add('hidden');
+        }
+
+        document.getElementById('startGameBtn').addEventListener('click', startNewGame);
+        document.getElementById('playAgainBtn').addEventListener('click', startNewGame);
+
+        // Sound Toggle
+        document.getElementById('soundToggleBtn').addEventListener('click', () => {
+            audio.muted = !audio.muted;
+            const icon = document.getElementById('soundIcon');
+            icon.className = audio.muted ? 'fa-solid fa-volume-xmark text-red-400 text-xs' : 'fa-solid fa-volume-high text-green-400 text-xs';
+        });
+
+        // Info Modal Handlers
+        const infoModal = document.getElementById('infoModal');
+        document.getElementById('infoBtn').addEventListener('click', () => infoModal.classList.remove('hidden'));
+        document.getElementById('closeInfoBtn').addEventListener('click', () => infoModal.classList.add('hidden'));
+        document.getElementById('gotItBtn').addEventListener('click', () => infoModal.classList.add('hidden'));
+
+        // Initialize UI
+        highScoreDisplay.textContent = highScore.toString().padStart(6, '0');
+        updateLivesUI();
+
+        // Start render loop
+        gameLoop();
+    </script>
+</body>
+</html>

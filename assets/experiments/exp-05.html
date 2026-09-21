@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Android vs iPhone — Which Fits Your Usage?</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        android: {
+                            DEFAULT: '#3DDC84',
+                            dark: '#073042',
+                            glow: 'rgba(61, 220, 132, 0.4)',
+                            accent: '#A4C639'
+                        },
+                        ios: {
+                            DEFAULT: '#007AFF',
+                            dark: '#1C1C1E',
+                            glow: 'rgba(0, 122, 255, 0.4)',
+                            accent: '#5856D6'
+                        },
+                        glass: {
+                            bg: 'rgba(15, 23, 42, 0.75)',
+                            border: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js for Results Visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #060913;
+            color: #F3F4F6;
+            overflow-x: hidden;
+        }
+
+        .font-display { font-family: 'Outfit', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* Glassmorphism Styles */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .glass-card {
+            background: rgba(30, 41, 59, 0.5);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        /* 2026 Smartphone Bezel and Body */
+        .phone-frame {
+            position: relative;
+            width: 310px;
+            height: 630px;
+            border-radius: 48px;
+            padding: 10px;
+            background: linear-gradient(145deg, #2a2d3d, #12141d);
+            box-shadow: 
+                0 25px 50px -12px rgba(0, 0, 0, 0.7),
+                0 0 30px rgba(0, 0, 0, 0.5),
+                inset 0 1px 2px rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .phone-frame-android {
+            box-shadow: 
+                0 20px 40px -10px rgba(0, 0, 0, 0.8),
+                0 0 25px rgba(61, 220, 132, 0.15),
+                inset 0 1px 2px rgba(61, 220, 132, 0.3);
+        }
+
+        .phone-frame-ios {
+            box-shadow: 
+                0 20px 40px -10px rgba(0, 0, 0, 0.8),
+                0 0 25px rgba(0, 122, 255, 0.15),
+                inset 0 1px 2px rgba(0, 122, 255, 0.3);
+        }
+
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            border-radius: 38px;
+            overflow: hidden;
+            position: relative;
+            background-color: #000;
+            user-select: none;
+        }
+
+        /* Phone Camera Cutouts */
+        .punch-hole-android {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 12px;
+            height: 12px;
+            background-color: #000;
+            border-radius: 50%;
+            z-index: 50;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .dynamic-island-ios {
+            position: absolute;
+            top: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90px;
+            height: 24px;
+            background-color: #000;
+            border-radius: 20px;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+        }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(100, 116, 139, 0.5);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.8);
+        }
+
+        /* Pulse Ambient Background */
+        .ambient-glow {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(120px);
+            pointer-events: none;
+            opacity: 0.25;
+            z-index: 0;
+        }
+
+        /* Range Slider Styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: rgba(51, 65, 85, 0.6);
+            border-radius: 8px;
+            height: 6px;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 18px;
+            width: 18px;
+            border-radius: 50%;
+            background: #F3F4F6;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            transition: transform 0.1s ease;
+        }
+
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col relative selection:bg-cyan-500 selection:text-white">
+
+    <!-- Background Ambient Glows -->
+    <div class="ambient-glow w-96 h-96 bg-android top-10 -left-20"></div>
+    <div class="ambient-glow w-96 h-96 bg-ios top-1/3 -right-20"></div>
+    <div class="ambient-glow w-96 h-96 bg-purple-600 bottom-10 left-1/3"></div>
+
+    <!-- Top Sticky Header with Navigation Stepper -->
+    <header class="sticky top-0 z-40 w-full glass-panel border-b border-slate-800/80 px-4 py-3">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+            
+            <!-- Logo / Branding -->
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="goToStep(0)">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-android via-teal-400 to-ios p-0.5 shadow-lg">
+                    <div class="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
+                        <i class="fa-solid fa-mobile-screen-button text-cyan-400 text-sm"></i>
+                    </div>
+                </div>
+                <div>
+                    <h1 class="font-display font-extrabold text-base tracking-tight text-white flex items-center gap-2">
+                        <span>Android</span>
+                        <span class="text-xs px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">VS</span>
+                        <span>iPhone</span>
+                    </h1>
+                    <p class="text-[10px] text-slate-400 leading-none">2026 Interactive Decision Platform</p>
+                </div>
+            </div>
+
+            <!-- Stepper Progress Bar -->
+            <nav class="flex items-center space-x-1 sm:space-x-2 text-xs">
+                <button id="stepBtn-0" onclick="goToStep(0)" class="step-nav-btn px-3 py-1.5 rounded-lg flex items-center space-x-2 bg-slate-800 text-white font-medium transition">
+                    <span class="w-5 h-5 rounded-full bg-cyan-500 text-slate-950 text-[10px] font-bold flex items-center justify-center">1</span>
+                    <span class="hidden md:inline">Landing</span>
+                </button>
+                <i class="fa-solid fa-chevron-right text-[10px] text-slate-600"></i>
+                <button id="stepBtn-1" onclick="goToStep(1)" class="step-nav-btn px-3 py-1.5 rounded-lg flex items-center space-x-2 text-slate-400 hover:text-white transition">
+                    <span class="w-5 h-5 rounded-full bg-slate-800 text-slate-300 text-[10px] font-bold flex items-center justify-center">2</span>
+                    <span class="hidden md:inline">Explore OS</span>
+                </button>
+                <i class="fa-solid fa-chevron-right text-[10px] text-slate-600"></i>
+                <button id="stepBtn-2" onclick="goToStep(2)" class="step-nav-btn px-3 py-1.5 rounded-lg flex items-center space-x-2 text-slate-400 hover:text-white transition">
+                    <span class="w-5 h-5 rounded-full bg-slate-800 text-slate-300 text-[10px] font-bold flex items-center justify-center">3</span>
+                    <span class="hidden md:inline">Key Matrix</span>
+                </button>
+                <i class="fa-solid fa-chevron-right text-[10px] text-slate-600"></i>
+                <button id="stepBtn-3" onclick="goToStep(3)" class="step-nav-btn px-3 py-1.5 rounded-lg flex items-center space-x-2 text-slate-400 hover:text-white transition">
+                    <span class="w-5 h-5 rounded-full bg-slate-800 text-slate-300 text-[10px] font-bold flex items-center justify-center">4</span>
+                    <span class="hidden md:inline">Rate & Weight</span>
+                </button>
+                <i class="fa-solid fa-chevron-right text-[10px] text-slate-600"></i>
+                <button id="stepBtn-4" onclick="goToStep(4)" class="step-nav-btn px-3 py-1.5 rounded-lg flex items-center space-x-2 text-slate-400 hover:text-white transition">
+                    <span class="w-5 h-5 rounded-full bg-slate-800 text-slate-300 text-[10px] font-bold flex items-center justify-center">5</span>
+                    <span>Your Result</span>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 py-6 z-10 flex flex-col justify-center">
+
+        <!-- SECTION 0: LANDING HERO SCREEN -->
+        <section id="stepSection-0" class="step-section min-h-[80vh] flex flex-col items-center justify-center text-center py-8">
+            <div class="inline-flex items-center space-x-2 px-3 py-1.5 rounded-full bg-slate-800/80 border border-slate-700/80 text-cyan-400 text-xs font-mono mb-6 animate-pulse">
+                <i class="fa-solid fa-compass"></i>
+                <span>Interactive Smartphone Exploration • 2026 Edition</span>
+            </div>
+
+            <h1 class="font-display text-4xl sm:text-6xl font-extrabold tracking-tight text-white mb-4 max-w-3xl leading-tight">
+                Android vs iPhone <br>
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-android via-teal-300 to-ios">
+                    Which Fits Your Usage?
+                </span>
+            </h1>
+
+            <p class="text-slate-300 text-sm sm:text-lg max-w-2xl mb-8 leading-relaxed">
+                Explore, test, and compare two realistic 2026 smartphone interface simulations side by side. Rate what truly matters to you to uncover your personalized platform alignment.
+            </p>
+
+            <!-- Landing Phone Mockups Preview -->
+            <div class="flex flex-row items-center justify-center gap-6 sm:gap-12 my-6 scale-90 sm:scale-100">
+                <!-- Android Hero Mockup -->
+                <div class="flex flex-col items-center group">
+                    <div class="phone-frame phone-frame-android h-[320px] w-[160px] rounded-[28px] p-1.5 transition-transform duration-500 group-hover:-translate-y-2 group-hover:rotate-1">
+                        <div class="phone-screen rounded-[22px] bg-slate-900 overflow-hidden relative border border-slate-800 flex flex-col items-center justify-center p-3">
+                            <div class="punch-hole-android top-2 w-2 h-2"></div>
+                            <i class="fa-brands fa-android text-4xl text-android mb-2 drop-shadow-[0_0_12px_rgba(61,220,132,0.5)]"></i>
+                            <span class="font-display font-bold text-xs text-white">Nova OS 2026</span>
+                            <span class="text-[9px] text-slate-400 mt-1">Open, AI-native & Modular</span>
+                        </div>
+                    </div>
+                    <span class="text-xs font-semibold text-android mt-3">Android Concept</span>
+                </div>
+
+                <div class="hidden sm:flex flex-col items-center justify-center">
+                    <div class="w-10 h-10 rounded-full bg-slate-800/80 border border-slate-700 flex items-center justify-center text-slate-400 font-mono text-xs font-bold">
+                        VS
+                    </div>
+                </div>
+
+                <!-- iPhone Hero Mockup -->
+                <div class="flex flex-col items-center group">
+                    <div class="phone-frame phone-frame-ios h-[320px] w-[160px] rounded-[28px] p-1.5 transition-transform duration-500 group-hover:-translate-y-2 group-hover:-rotate-1">
+                        <div class="phone-screen rounded-[22px] bg-slate-900 overflow-hidden relative border border-slate-800 flex flex-col items-center justify-center p-3">
+                            <div class="dynamic-island-ios top-1.5 w-12 h-3 rounded-full"></div>
+                            <i class="fa-brands fa-apple text-4xl text-ios mb-2 drop-shadow-[0_0_12px_rgba(0,122,255,0.5)]"></i>
+                            <span class="font-display font-bold text-xs text-white">Apex iOS 2026</span>
+                            <span class="text-[9px] text-slate-400 mt-1">Seamless, Fluid & Secure</span>
+                        </div>
+                    </div>
+                    <span class="text-xs font-semibold text-ios mt-3">iPhone Concept</span>
+                </div>
+            </div>
+
+            <!-- Start Button CTA -->
+            <div class="mt-6 flex flex-col sm:flex-row items-center gap-4">
+                <button onclick="goToStep(1)" class="px-8 py-4 rounded-2xl bg-gradient-to-r from-android via-teal-400 to-ios text-slate-950 font-display font-extrabold text-sm sm:text-base tracking-wide shadow-xl shadow-cyan-500/20 hover:scale-105 active:scale-95 transition-all flex items-center space-x-3 cursor-pointer">
+                    <span>START THE EXPERIENCE</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+            <p class="text-[11px] text-slate-500 mt-4">No real brand logos used • Independent 2026 user preference simulation</p>
+        </section>
+
+        <!-- SECTION 1: INTERACTIVE OS EXPLORATION (SIDE BY SIDE PHONES) -->
+        <section id="stepSection-1" class="step-section hidden space-y-6">
+            
+            <!-- Section Title & OS App Switcher Controls -->
+            <div class="text-center max-w-2xl mx-auto space-y-2">
+                <h2 class="font-display text-2xl sm:text-3xl font-extrabold text-white">
+                    Step 1 — Interactive OS Simulation
+                </h2>
+                <p class="text-xs sm:text-sm text-slate-400">
+                    Switch features using the bar below to test how everyday tasks behave on both 2026 smartphone interfaces.
+                </p>
+
+                <!-- Interactive App Feature Selector -->
+                <div class="pt-3 flex flex-wrap items-center justify-center gap-1.5 max-w-3xl mx-auto">
+                    <button onclick="switchApp('lock')" class="app-switch-btn active px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-800 text-white hover:bg-slate-700 transition flex items-center space-x-1.5" data-app="lock">
+                        <i class="fa-solid fa-lock text-cyan-400"></i>
+                        <span>Lock Screen</span>
+                    </button>
+                    <button onclick="switchApp('home')" class="app-switch-btn px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-900/80 text-slate-400 hover:bg-slate-800 transition flex items-center space-x-1.5" data-app="home">
+                        <i class="fa-solid fa-house text-emerald-400"></i>
+                        <span>Home & Widgets</span>
+                    </button>
+                    <button onclick="switchApp('camera')" class="app-switch-btn px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-900/80 text-slate-400 hover:bg-slate-800 transition flex items-center space-x-1.5" data-app="camera">
+                        <i class="fa-solid fa-camera text-pink-400"></i>
+                        <span>Camera UI</span>
+                    </button>
+                    <button onclick="switchApp('control')" class="app-switch-btn px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-900/80 text-slate-400 hover:bg-slate-800 transition flex items-center space-x-1.5" data-app="control">
+                        <i class="fa-solid fa-sliders text-amber-400"></i>
+                        <span>Control Center</span>
+                    </button>
+                    <button onclick="switchApp('multitask')" class="app-switch-btn px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-900/80 text-slate-400 hover:bg-slate-800 transition flex items-center space-x-1.5" data-app="multitask">
+                        <i class="fa-solid fa-border-all text-purple-400"></i>
+                        <span>Multitasking</span>
+                    </button>
+                    <button onclick="switchApp('files')" class="app-switch-btn px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-900/80 text-slate-400 hover:bg-slate-800 transition flex items-center space-x-1.5" data-app="files">
+                        <i class="fa-solid fa-folder-open text-blue-400"></i>
+                        <span>File Manager</span>
+                    </button>
+                    <button onclick="switchApp('store')" class="app-switch-btn px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-900/80 text-slate-400 hover:bg-slate-800 transition flex items-center space-x-1.5" data-app="store">
+                        <i class="fa-solid fa-bag-shopping text-red-400"></i>
+                        <span>App Store</span>
+                    </button>
+                    <button onclick="switchApp('ai')" class="app-switch-btn px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-900/80 text-slate-400 hover:bg-slate-800 transition flex items-center space-x-1.5" data-app="ai">
+                        <i class="fa-solid fa-wand-magic-sparkles text-indigo-400"></i>
+                        <span>AI Assistant</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Dual Smartphone Display Area -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center justify-items-center py-4">
+                
+                <!-- LEFT PHONE: ANDROID CONCEPT -->
+                <div class="flex flex-col items-center space-y-3 w-full max-w-sm">
+                    <div class="flex items-center space-x-2 text-android font-display font-bold text-sm">
+                        <i class="fa-brands fa-android text-lg"></i>
+                        <span>Android 2026 (Nova OS)</span>
+                    </div>
+
+                    <!-- Android Phone Frame -->
+                    <div class="phone-frame phone-frame-android">
+                        <div class="phone-screen bg-slate-950 flex flex-col justify-between text-white relative">
+                            <!-- Punch hole camera -->
+                            <div class="punch-hole-android"></div>
+                            
+                            <!-- Status Bar -->
+                            <div class="pt-2 px-5 flex justify-between items-center text-[10px] text-slate-300 font-mono z-30">
+                                <span>10:24</span>
+                                <div class="flex items-center space-x-1.5 text-[9px]">
+                                    <i class="fa-solid fa-wifi"></i>
+                                    <i class="fa-solid fa-signal"></i>
+                                    <i class="fa-solid fa-battery-three-quarters text-android"></i>
+                                </div>
+                            </div>
+
+                            <!-- Screen Dynamic Viewport -->
+                            <div id="androidViewport" class="flex-1 w-full relative overflow-y-auto overflow-x-hidden p-3 flex flex-col justify-center">
+                                <!-- Dynamic JS Injection based on active app -->
+                            </div>
+
+                            <!-- Android Navigation Bar -->
+                            <div class="pb-2 pt-1 flex justify-center items-center z-30">
+                                <div class="w-28 h-1 bg-slate-400/50 rounded-full cursor-pointer hover:bg-android transition"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- OS Specific Quick Note -->
+                    <div class="glass-card p-3 rounded-xl w-full text-[11px] text-slate-300 border-l-2 border-android">
+                        <span class="font-bold text-android block mb-0.5">Android Philosophy:</span>
+                        <p id="androidNoteText">High customization, deep file access, split-screen multi-windowing, and side-loading freedom.</p>
+                    </div>
+                </div>
+
+                <!-- RIGHT PHONE: IPHONE CONCEPT -->
+                <div class="flex flex-col items-center space-y-3 w-full max-w-sm">
+                    <div class="flex items-center space-x-2 text-ios font-display font-bold text-sm">
+                        <i class="fa-brands fa-apple text-lg"></i>
+                        <span>iPhone 2026 (Apex iOS)</span>
+                    </div>
+
+                    <!-- iPhone Phone Frame -->
+                    <div class="phone-frame phone-frame-ios">
+                        <div class="phone-screen bg-slate-950 flex flex-col justify-between text-white relative">
+                            <!-- Dynamic Island Cutout -->
+                            <div class="dynamic-island-ios">
+                                <span class="text-[8px] text-cyan-400 font-mono"><i class="fa-solid fa-music text-[7px] mr-1"></i>Track 01</span>
+                                <div class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
+                            </div>
+
+                            <!-- Status Bar -->
+                            <div class="pt-2 px-5 flex justify-between items-center text-[10px] text-slate-300 font-mono z-30">
+                                <span>10:24</span>
+                                <div class="flex items-center space-x-1.5 text-[9px]">
+                                    <i class="fa-solid fa-wifi"></i>
+                                    <i class="fa-solid fa-battery-full text-ios"></i>
+                                </div>
+                            </div>
+
+                            <!-- Screen Dynamic Viewport -->
+                            <div id="iosViewport" class="flex-1 w-full relative overflow-y-auto overflow-x-hidden p-3 flex flex-col justify-center">
+                                <!-- Dynamic JS Injection based on active app -->
+                            </div>
+
+                            <!-- iOS Home Indicator -->
+                            <div class="pb-2 pt-1 flex justify-center items-center z-30">
+                                <div class="w-32 h-1 bg-slate-300/60 rounded-full cursor-pointer hover:bg-ios transition"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- OS Specific Quick Note -->
+                    <div class="glass-card p-3 rounded-xl w-full text-[11px] text-slate-300 border-l-2 border-ios">
+                        <span class="font-bold text-ios block mb-0.5">iPhone Philosophy:</span>
+                        <p id="iosNoteText">Unmatched ecosystem synergy, consistent polished UI, high privacy controls, and long-term fluid performance.</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Bottom Navigation Bar for Step 1 -->
+            <div class="flex justify-between items-center pt-4 border-t border-slate-800">
+                <button onclick="goToStep(0)" class="px-5 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-700 transition">
+                    <i class="fa-solid fa-arrow-left mr-2"></i>Back to Overview
+                </button>
+                <button onclick="goToStep(2)" class="px-6 py-2.5 rounded-xl bg-cyan-500 text-slate-950 text-xs font-bold hover:bg-cyan-400 transition flex items-center space-x-2">
+                    <span>Continue to Key Matrix</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+        </section>
+
+        <!-- SECTION 2: PLATFORM CHARACTERISTICS MATRIX -->
+        <section id="stepSection-2" class="step-section hidden space-y-6">
+            <div class="text-center max-w-2xl mx-auto space-y-2">
+                <h2 class="font-display text-2xl sm:text-3xl font-extrabold text-white">
+                    Step 2 — 2026 Platform Characteristics
+                </h2>
+                <p class="text-xs sm:text-sm text-slate-400">
+                    Review objective everyday characteristics before providing your ratings in the next step.
+                </p>
+            </div>
+
+            <!-- Categories Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                
+                <!-- Category Card 1: Camera -->
+                <div class="glass-card p-4 rounded-2xl space-y-2">
+                    <div class="flex items-center space-x-2 text-cyan-400 font-display font-bold text-sm">
+                        <i class="fa-solid fa-camera"></i>
+                        <span>1. Camera & Imaging</span>
+                    </div>
+                    <div class="text-xs space-y-1.5 text-slate-300">
+                        <p><strong class="text-android">Android:</strong> Pro manual controls, periscope 100x zoom, RAW capture freedom, AI magic eraser tools.</p>
+                        <p><strong class="text-ios">iPhone:</strong> Industry-leading video stabilization, color consistency, point-and-shoot simplicity, Spatial 3D Video.</p>
+                    </div>
+                </div>
+
+                <!-- Category Card 2: Customization -->
+                <div class="glass-card p-4 rounded-2xl space-y-2">
+                    <div class="flex items-center space-x-2 text-emerald-400 font-display font-bold text-sm">
+                        <i class="fa-solid fa-palette"></i>
+                        <span>2. Customization</span>
+                    </div>
+                    <div class="text-xs space-y-1.5 text-slate-300">
+                        <p><strong class="text-android">Android:</strong> Custom launchers, dynamic Material color engines, third-party icon packs, custom lock widgets.</p>
+                        <p><strong class="text-ios">iPhone:</strong> Curated lock screen depth wallpapers, widget stacks, tintable icons, uniform sleek aesthetic.</p>
+                    </div>
+                </div>
+
+                <!-- Category Card 3: File Management -->
+                <div class="glass-card p-4 rounded-2xl space-y-2">
+                    <div class="flex items-center space-x-2 text-blue-400 font-display font-bold text-sm">
+                        <i class="fa-solid fa-folder-tree"></i>
+                        <span>3. File Management</span>
+                    </div>
+                    <div class="text-xs space-y-1.5 text-slate-300">
+                        <p><strong class="text-android">Android:</strong> Desktop-like file tree, USB OTG drive support, direct APK side-loading, download directory control.</p>
+                        <p><strong class="text-ios">iPhone:</strong> Cloud-centric Files app, sandboxed application storage, seamless AirDrop file transfer.</p>
+                    </div>
+                </div>
+
+                <!-- Category Card 4: Multitasking -->
+                <div class="glass-card p-4 rounded-2xl space-y-2">
+                    <div class="flex items-center space-x-2 text-purple-400 font-display font-bold text-sm">
+                        <i class="fa-solid fa-window-restore"></i>
+                        <span>4. Multitasking</span>
+                    </div>
+                    <div class="text-xs space-y-1.5 text-slate-300">
+                        <p><strong class="text-android">Android:</strong> Native split screen, free-floating pop-up windows, background task longevity.</p>
+                        <p><strong class="text-ios">iPhone:</strong> Picture-in-picture video, instant app switcher gestures, background memory management.</p>
+                    </div>
+                </div>
+
+                <!-- Category Card 5: App Ecosystem -->
+                <div class="glass-card p-4 rounded-2xl space-y-2">
+                    <div class="flex items-center space-x-2 text-amber-400 font-display font-bold text-sm">
+                        <i class="fa-solid fa-layer-group"></i>
+                        <span>5. App & Hardware Ecosystem</span>
+                    </div>
+                    <div class="text-xs space-y-1.5 text-slate-300">
+                        <p><strong class="text-android">Android:</strong> Universal compatibility, cross-brand smartwatch and earbud support, Windows integration.</p>
+                        <p><strong class="text-ios">iPhone:</strong> Deep Mac, iPad, Watch, Apple TV synergy, AirTag tracking, iMessage / FaceTime continuity.</p>
+                    </div>
+                </div>
+
+                <!-- Category Card 6: AI Features -->
+                <div class="glass-card p-4 rounded-2xl space-y-2">
+                    <div class="flex items-center space-x-2 text-pink-400 font-display font-bold text-sm">
+                        <i class="fa-solid fa-brain"></i>
+                        <span>6. On-Device AI Features</span>
+                    </div>
+                    <div class="text-xs space-y-1.5 text-slate-300">
+                        <p><strong class="text-android">Android:</strong> Deep multimodal Google assistant integration, screen context search, automated call screening.</p>
+                        <p><strong class="text-ios">iPhone:</strong> Private cloud compute architecture, context-aware notification summaries, Siri semantic understanding.</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Bottom Navigation for Step 2 -->
+            <div class="flex justify-between items-center pt-4 border-t border-slate-800">
+                <button onclick="goToStep(1)" class="px-5 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-700 transition">
+                    <i class="fa-solid fa-arrow-left mr-2"></i>Back to Explore OS
+                </button>
+                <button onclick="goToStep(3)" class="px-6 py-2.5 rounded-xl bg-cyan-500 text-slate-950 text-xs font-bold hover:bg-cyan-400 transition flex items-center space-x-2">
+                    <span>Continue to Evaluation</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+        </section>
+
+        <!-- SECTION 3: RATE CATEGORIES & WEIGHT PRIORITIES -->
+        <section id="stepSection-3" class="step-section hidden space-y-6">
+            <div class="text-center max-w-2xl mx-auto space-y-2">
+                <h2 class="font-display text-2xl sm:text-3xl font-extrabold text-white">
+                    Step 3 — Evaluate & Weight Your Usage
+                </h2>
+                <p class="text-xs sm:text-sm text-slate-400">
+                    For each category, select which platform approach fits you best, then adjust how much that category matters to you personally.
+                </p>
+            </div>
+
+            <!-- Evaluation Form List -->
+            <div class="glass-panel p-4 sm:p-6 rounded-2xl max-w-4xl mx-auto space-y-6">
+                
+                <div id="ratingsContainer" class="space-y-6 divide-y divide-slate-800">
+                    <!-- Dynamic JS Generation of the 14 Category Sliders & Toggle Buttons -->
+                </div>
+
+            </div>
+
+            <!-- Calculate Button -->
+            <div class="flex flex-col items-center justify-center pt-4">
+                <button onclick="calculateResults()" class="px-8 py-4 rounded-2xl bg-gradient-to-r from-android via-teal-400 to-ios text-slate-950 font-display font-extrabold text-sm sm:text-base tracking-wide shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center space-x-3 cursor-pointer">
+                    <i class="fa-solid fa-calculator"></i>
+                    <span>CALCULATE MY PERSONAL MATCH</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- SECTION 4: FINAL PERSONALIZED RESULT SCREEN -->
+        <section id="stepSection-4" class="step-section hidden space-y-8 py-4">
+            
+            <!-- Result Title -->
+            <div class="text-center max-w-2xl mx-auto space-y-2">
+                <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-slate-800 text-cyan-400 text-xs font-mono">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>Personal Match Profile</span>
+                </div>
+                <h2 class="font-display text-3xl sm:text-4xl font-extrabold text-white">
+                    Your Platform Alignment
+                </h2>
+                <p class="text-xs sm:text-sm text-slate-400">
+                    Based strictly on your selections and weighted priorities.
+                </p>
+            </div>
+
+            <!-- Main Score Rings Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+                
+                <!-- Android Percentage Match -->
+                <div class="glass-card p-6 rounded-3xl border-t-4 border-android flex flex-col items-center text-center space-y-3 relative overflow-hidden">
+                    <div class="w-12 h-12 rounded-2xl bg-android/20 flex items-center justify-center text-android text-2xl">
+                        <i class="fa-brands fa-android"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-display font-bold text-lg text-white">Android Alignment</h3>
+                        <p class="text-xs text-slate-400">Nova OS 2026 Features</p>
+                    </div>
+                    <div class="text-5xl font-display font-extrabold text-android tracking-tight my-2">
+                        <span id="androidScorePercent">0</span>%
+                    </div>
+                    <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                        <div id="androidProgressBar" class="bg-android h-full transition-all duration-1000" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- iPhone Percentage Match -->
+                <div class="glass-card p-6 rounded-3xl border-t-4 border-ios flex flex-col items-center text-center space-y-3 relative overflow-hidden">
+                    <div class="w-12 h-12 rounded-2xl bg-ios/20 flex items-center justify-center text-ios text-2xl">
+                        <i class="fa-brands fa-apple"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-display font-bold text-lg text-white">iPhone Alignment</h3>
+                        <p class="text-xs text-slate-400">Apex iOS 2026 Features</p>
+                    </div>
+                    <div class="text-5xl font-display font-extrabold text-ios tracking-tight my-2">
+                        <span id="iosScorePercent">0</span>%
+                    </div>
+                    <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                        <div id="iosProgressBar" class="bg-ios h-full transition-all duration-1000" style="width: 0%"></div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Priorities Breakdown Radar Chart & Neutral Text -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-5xl mx-auto">
+                
+                <!-- Priority Radar Visualization -->
+                <div class="glass-panel p-5 rounded-3xl flex flex-col items-center space-y-3">
+                    <h4 class="font-display font-bold text-sm text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-sliders text-cyan-400"></i>
+                        <span>Your Priority Weights Breakdown</span>
+                    </h4>
+                    <div class="w-full max-w-sm h-64">
+                        <canvas id="priorityRadarChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Neutral Qualitative Analysis -->
+                <div class="glass-panel p-6 rounded-3xl flex flex-col justify-between space-y-4">
+                    <div>
+                        <h4 class="font-display font-bold text-base text-white mb-3 flex items-center space-x-2">
+                            <i class="fa-solid fa-list-check text-emerald-400"></i>
+                            <span>Personal Usage Analysis</span>
+                        </h4>
+                        
+                        <div id="neutralAnalysisText" class="space-y-3 text-xs sm:text-sm text-slate-300 leading-relaxed">
+                            <!-- JS Injected Neutral Analysis -->
+                        </div>
+                    </div>
+
+                    <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 text-[11px] text-slate-400">
+                        <i class="fa-solid fa-circle-info text-cyan-400 mr-1"></i>
+                        <span>This match reflects your inputs without objective system bias or winner declaration.</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-wrap items-center justify-center gap-4 pt-4">
+                <button onclick="goToStep(3)" class="px-5 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-700 transition">
+                    <i class="fa-solid fa-sliders mr-2"></i>Adjust Ratings & Weights
+                </button>
+                <button onclick="goToStep(1)" class="px-5 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-700 transition">
+                    <i class="fa-solid fa-rotate-left mr-2"></i>Explore Phones Again
+                </button>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        /* ------------------------------------------------------------------
+           1. DATA STRUCTURES & CATEGORIES
+           ------------------------------------------------------------------ */
+        const CATEGORIES = [
+            { id: 'camera', name: 'Camera & Video Quality', icon: 'fa-camera', desc: 'Manual controls vs point-and-shoot consistency' },
+            { id: 'battery', name: 'Battery Life & Charging', icon: 'fa-battery-full', desc: 'Ultra-fast wired charging vs optimized battery health' },
+            { id: 'performance', name: 'Performance & Speed', icon: 'fa-gauge-high', desc: 'Peak RAM headroom vs tight silicon hardware synergy' },
+            { id: 'gaming', name: 'Gaming Capabilities', icon: 'fa-gamepad', desc: 'Emulation freedom vs optimized mobile AAA releases' },
+            { id: 'customization', name: 'UI & Customization', icon: 'fa-palette', desc: 'Custom launchers & widgets vs curated iOS design' },
+            { id: 'ease', name: 'Ease of Use & Simplicity', icon: 'fa-hand-pointer', desc: 'Intuitive gestures vs multi-step setting control' },
+            { id: 'privacy', name: 'Privacy & Security Controls', icon: 'fa-shield-halved', desc: 'Granular app permissions vs Apple private compute' },
+            { id: 'multitask', name: 'Multitasking & Split Screen', icon: 'fa-window-restore', desc: 'Side-by-side apps vs picture-in-picture focus' },
+            { id: 'files', name: 'File Management & USB', icon: 'fa-folder-tree', desc: 'Full desktop file tree vs cloud Files app' },
+            { id: 'ecosystem', name: 'App Ecosystem & Devices', icon: 'fa-layer-group', desc: 'Universal Windows compatibility vs Apple device continuity' },
+            { id: 'ai', name: 'On-Device AI Features', icon: 'fa-brain', desc: 'Deep Google Gemini tools vs private Apple Intelligence' },
+            { id: 'design', name: 'Design & Hardware Feel', icon: 'fa-mobile', desc: 'Diverse form factors (foldables) vs titanium precision' },
+            { id: 'price', name: 'Price & Long-Term Value', icon: 'fa-tag', desc: 'Multiple price tiers vs high trade-in resale value' },
+            { id: 'connectivity', name: 'Accessories & Wireless', icon: 'fa-wifi', desc: 'Open Bluetooth standards vs MagSafe & AirDrop synergy' }
+        ];
+
+        // User Selection State
+        const userState = {
+            ratings: {}, // categoryId -> 'android' | 'ios' | 'equal' | 'unsure'
+            weights: {}  // categoryId -> 1 to 5
+        };
+
+        // Initialize state defaults
+        CATEGORIES.forEach(cat => {
+            userState.ratings[cat.id] = 'equal';
+            userState.weights[cat.id] = 3;
+        });
+
+        // Current Step Index
+        let currentStep = 0;
+        let radarChartInstance = null;
+
+        /* ------------------------------------------------------------------
+           2. PHONE OS SIMULATION RENDER ENGINE (STEP 1)
+           ------------------------------------------------------------------ */
+        const APP_SIMULATIONS = {
+            lock: {
+                androidNote: "Customizable clock styles, lock screen shortcuts, and dynamic always-on widgets.",
+                iosNote: "Depth wallpaper effects, live activity widgets, and lock screen focus modes.",
+                androidHtml: `
+                    <div class="flex flex-col items-center justify-between h-full py-4 text-center">
+                        <div class="space-y-1">
+                            <div class="text-4xl font-display font-bold text-android">10:24</div>
+                            <div class="text-[10px] text-slate-400">Thursday, Oct 15 • 72°F ☀️</div>
+                        </div>
+                        <div class="w-full space-y-2">
+                            <div class="bg-slate-900/80 backdrop-blur p-2.5 rounded-2xl border border-slate-800 text-left flex items-center space-x-2">
+                                <div class="w-6 h-6 rounded-full bg-android/20 text-android flex items-center justify-center text-xs"><i class="fa-solid fa-message"></i></div>
+                                <div>
+                                    <div class="text-[10px] font-bold text-white">Nova Message</div>
+                                    <div class="text-[9px] text-slate-400">Meeting rescheduled to 3 PM</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex justify-between w-full px-4 text-slate-400 text-xs">
+                            <i class="fa-solid fa-camera cursor-pointer hover:text-android"></i>
+                            <i class="fa-solid fa-flashlight cursor-pointer hover:text-android"></i>
+                        </div>
+                    </div>
+                `,
+                iosHtml: `
+                    <div class="flex flex-col items-center justify-between h-full py-4 text-center">
+                        <div class="space-y-1">
+                            <div class="text-4xl font-display font-extrabold text-white tracking-tight">10:24</div>
+                            <div class="text-[10px] text-ios font-medium">THU 15 OCT</div>
+                        </div>
+                        <div class="w-full space-y-2">
+                            <div class="bg-slate-900/90 backdrop-blur p-2.5 rounded-2xl border border-slate-800/80 text-left flex items-center space-x-2">
+                                <div class="w-6 h-6 rounded-xl bg-ios text-white flex items-center justify-center text-xs"><i class="fa-solid fa-plane"></i></div>
+                                <div>
+                                    <div class="text-[10px] font-bold text-white">Flight Live Activity</div>
+                                    <div class="text-[9px] text-slate-400">Boarding Gate B12 • In 20m</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex justify-between w-full px-4 text-slate-400 text-xs">
+                            <div class="w-7 h-7 rounded-full bg-slate-800/80 flex items-center justify-center"><i class="fa-solid fa-flashlight text-[10px]"></i></div>
+                            <div class="w-7 h-7 rounded-full bg-slate-800/80 flex items-center justify-center"><i class="fa-solid fa-camera text-[10px]"></i></div>
+                        </div>
+                    </div>
+                `
+            },
+            home: {
+                androidNote: "Free grid icon placement, custom widget sizes, app drawer, and third-party icon packages.",
+                iosNote: "Structured uniform icon grid, smart widget stacks, App Library auto-categorization.",
+                androidHtml: `
+                    <div class="h-full flex flex-col justify-between py-2 space-y-3">
+                        <div class="bg-slate-900/90 p-3 rounded-2xl border border-android/30 flex items-center justify-between">
+                            <div>
+                                <div class="text-[10px] font-bold text-android">Weather Widget</div>
+                                <div class="text-xs text-white">72° Sunny</div>
+                            </div>
+                            <i class="fa-solid fa-sun text-amber-400 text-xl"></i>
+                        </div>
+                        <div class="grid grid-cols-4 gap-3 text-center">
+                            <div class="flex flex-col items-center"><div class="w-10 h-10 rounded-2xl bg-emerald-500 flex items-center justify-center text-white text-base shadow"><i class="fa-solid fa-phone"></i></div><span class="text-[9px] text-slate-300 mt-1">Phone</span></div>
+                            <div class="flex flex-col items-center"><div class="w-10 h-10 rounded-2xl bg-blue-500 flex items-center justify-center text-white text-base shadow"><i class="fa-solid fa-envelope"></i></div><span class="text-[9px] text-slate-300 mt-1">Mail</span></div>
+                            <div class="flex flex-col items-center"><div class="w-10 h-10 rounded-2xl bg-purple-500 flex items-center justify-center text-white text-base shadow"><i class="fa-solid fa-gear"></i></div><span class="text-[9px] text-slate-300 mt-1">Settings</span></div>
+                            <div class="flex flex-col items-center"><div class="w-10 h-10 rounded-2xl bg-amber-500 flex items-center justify-center text-white text-base shadow"><i class="fa-solid fa-folder"></i></div><span class="text-[9px] text-slate-300 mt-1">Files</span></div>
+                        </div>
+                        <div class="bg-slate-900/60 p-2 rounded-2xl border border-slate-800 text-center text-[10px] text-slate-400">
+                            <i class="fa-solid fa-bars-staggered mr-1"></i> Swipe Up for App Drawer
+                        </div>
+                    </div>
+                `,
+                iosHtml: `
+                    <div class="h-full flex flex-col justify-between py-2 space-y-3">
+                        <div class="bg-slate-900/90 p-3 rounded-2xl border border-ios/30 flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-full bg-ios/20 flex items-center justify-center text-ios"><i class="fa-solid fa-calendar-day"></i></div>
+                            <div>
+                                <div class="text-[10px] font-bold text-white">Next Event</div>
+                                <div class="text-[9px] text-slate-400">Team Sync at 2:00 PM</div>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-4 gap-3 text-center">
+                            <div class="flex flex-col items-center"><div class="w-10 h-10 rounded-2xl bg-ios flex items-center justify-center text-white text-base shadow"><i class="fa-solid fa-compass"></i></div><span class="text-[9px] text-slate-300 mt-1">Safari</span></div>
+                            <div class="flex flex-col items-center"><div class="w-10 h-10 rounded-2xl bg-emerald-500 flex items-center justify-center text-white text-base shadow"><i class="fa-solid fa-[#000]"></i><i class="fa-solid fa-message"></i></div><span class="text-[9px] text-slate-300 mt-1">Messages</span></div>
+                            <div class="flex flex-col items-center"><div class="w-10 h-10 rounded-2xl bg-pink-500 flex items-center justify-center text-white text-base shadow"><i class="fa-solid fa-music"></i></div><span class="text-[9px] text-slate-300 mt-1">Music</span></div>
+                            <div class="flex flex-col items-center"><div class="w-10 h-10 rounded-2xl bg-slate-700 flex items-center justify-center text-white text-base shadow"><i class="fa-solid fa-sliders"></i></div><span class="text-[9px] text-slate-300 mt-1">Control</span></div>
+                        </div>
+                        <div class="bg-slate-900/60 p-2 rounded-2xl border border-slate-800 text-center text-[10px] text-slate-400">
+                            <i class="fa-solid fa-grid-2 mr-1"></i> Swipe Left for App Library
+                        </div>
+                    </div>
+                `
+            },
+            camera: {
+                androidNote: "Pro mode manual controls, RAW ISO controls, 100x zoom toggle, AI magic remover.",
+                iosNote: "Spatial Video 3D recording, Action Mode stabilization, seamless lens switching.",
+                androidHtml: `
+                    <div class="h-full bg-slate-900 rounded-2xl p-2 flex flex-col justify-between text-center relative border border-slate-800">
+                        <div class="flex justify-between text-[10px] text-slate-400 px-2">
+                            <span class="text-android font-bold">PRO MODE</span>
+                            <span>RAW • 200MP</span>
+                        </div>
+                        <div class="my-auto h-28 bg-slate-950 rounded-xl flex items-center justify-center border border-slate-800">
+                            <i class="fa-solid fa-mountain-sun text-3xl text-slate-600"></i>
+                        </div>
+                        <div class="flex items-center justify-around">
+                            <span class="text-[9px] bg-slate-800 px-2 py-0.5 rounded text-android">0.5x</span>
+                            <span class="text-[9px] bg-android px-2 py-0.5 rounded text-slate-950 font-bold">1x</span>
+                            <span class="text-[9px] bg-slate-800 px-2 py-0.5 rounded text-white">5x</span>
+                            <span class="text-[9px] bg-slate-800 px-2 py-0.5 rounded text-white">100x</span>
+                        </div>
+                        <div class="w-10 h-10 rounded-full border-2 border-white bg-slate-800 mx-auto cursor-pointer active:scale-90 transition"></div>
+                    </div>
+                `,
+                iosHtml: `
+                    <div class="h-full bg-slate-900 rounded-2xl p-2 flex flex-col justify-between text-center relative border border-slate-800">
+                        <div class="flex justify-between text-[10px] text-slate-400 px-2">
+                            <span class="text-ios font-bold"><i class="fa-solid fa-cube mr-1"></i>SPATIAL VIDEO</span>
+                            <span>4K 60FPS</span>
+                        </div>
+                        <div class="my-auto h-28 bg-slate-950 rounded-xl flex items-center justify-center border border-slate-800">
+                            <i class="fa-solid fa-video text-3xl text-ios"></i>
+                        </div>
+                        <div class="flex items-center justify-center space-x-3 text-[9px]">
+                            <span class="text-slate-400">PHOTO</span>
+                            <span class="text-amber-400 font-bold">VIDEO</span>
+                            <span class="text-slate-400">PORTRAIT</span>
+                        </div>
+                        <div class="w-10 h-10 rounded-full border-2 border-ios bg-ios/20 mx-auto flex items-center justify-center cursor-pointer active:scale-90 transition">
+                            <div class="w-4 h-4 bg-red-500 rounded-full"></div>
+                        </div>
+                    </div>
+                `
+            },
+            control: {
+                androidNote: "Quick Settings tiles with customizable layout, smart home toggles, wireless sharing.",
+                iosNote: "Customizable Control Center page cards, focus mode toggles, integrated AirPlay routing.",
+                androidHtml: `
+                    <div class="h-full flex flex-col justify-between py-1 space-y-2">
+                        <div class="text-[10px] text-android font-bold text-center">Quick Settings Shade</div>
+                        <div class="grid grid-cols-2 gap-2 text-[10px]">
+                            <div class="bg-android/20 border border-android text-android p-2 rounded-xl flex items-center space-x-2"><i class="fa-solid fa-wifi"></i><span>Wi-Fi On</span></div>
+                            <div class="bg-slate-800 text-slate-300 p-2 rounded-xl flex items-center space-x-2"><i class="fa-solid fa-bluetooth"></i><span>Bluetooth</span></div>
+                            <div class="bg-android/20 border border-android text-android p-2 rounded-xl flex items-center space-x-2"><i class="fa-solid fa-house-signal"></i><span>Smart Home</span></div>
+                            <div class="bg-slate-800 text-slate-300 p-2 rounded-xl flex items-center space-x-2"><i class="fa-solid fa-moon"></i><span>Do Not Disturb</span></div>
+                        </div>
+                        <div class="space-y-1">
+                            <div class="text-[9px] text-slate-400">Brightness</div>
+                            <input type="range" class="w-full" value="80">
+                        </div>
+                    </div>
+                `,
+                iosHtml: `
+                    <div class="h-full flex flex-col justify-between py-1 space-y-2">
+                        <div class="text-[10px] text-ios font-bold text-center">Control Center</div>
+                        <div class="grid grid-cols-2 gap-2 text-[10px]">
+                            <div class="bg-ios/20 border border-ios text-ios p-2 rounded-xl flex items-center space-x-2"><i class="fa-solid fa-tower-cell"></i><span>Cellular Data</span></div>
+                            <div class="bg-ios/20 border border-ios text-ios p-2 rounded-xl flex items-center space-x-2"><i class="fa-solid fa-airplay"></i><span>AirPlay</span></div>
+                            <div class="bg-slate-800 text-slate-300 p-2 rounded-xl flex items-center space-x-2"><i class="fa-solid fa-eye text-indigo-400"></i><span>Focus Mode</span></div>
+                            <div class="bg-slate-800 text-slate-300 p-2 rounded-xl flex items-center space-x-2"><i class="fa-solid fa-rotate-right"></i><span>Orientation</span></div>
+                        </div>
+                        <div class="space-y-1">
+                            <div class="text-[9px] text-slate-400">Volume Level</div>
+                            <input type="range" class="w-full" value="65">
+                        </div>
+                    </div>
+                `
+            },
+            multitask: {
+                androidNote: "Split screen multi-windowing, floating pop-up apps, persistent desktop mode.",
+                iosNote: "Fluid card app switcher, picture-in-picture video player, quick gesture switching.",
+                androidHtml: `
+                    <div class="h-full flex flex-col space-y-1 text-[9px]">
+                        <div class="text-center text-android font-bold">Split-Screen View</div>
+                        <div class="flex-1 bg-slate-900 border border-android/40 rounded-xl p-2">
+                            <span class="text-android font-bold">App A: Browser</span>
+                            <div class="text-[8px] text-slate-400 mt-1">Reading tech article...</div>
+                        </div>
+                        <div class="w-full h-1 bg-android/50 rounded-full"></div>
+                        <div class="flex-1 bg-slate-900 border border-slate-800 rounded-xl p-2">
+                            <span class="text-cyan-400 font-bold">App B: Notes</span>
+                            <div class="text-[8px] text-slate-400 mt-1">Taking notes simultaneously...</div>
+                        </div>
+                    </div>
+                `,
+                iosHtml: `
+                    <div class="h-full flex flex-col justify-between text-[9px] py-1">
+                        <div class="text-center text-ios font-bold">Card App Switcher</div>
+                        <div class="relative h-32 flex justify-center items-center">
+                            <div class="absolute left-2 w-28 h-28 bg-slate-800 rounded-xl border border-slate-700 opacity-60 scale-90"></div>
+                            <div class="w-32 h-32 bg-slate-900 rounded-2xl border border-ios shadow-xl p-2 z-10">
+                                <span class="text-ios font-bold">Safari Browser</span>
+                                <div class="text-[8px] text-slate-400 mt-2">Smooth gesture swipe between recent apps</div>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+            files: {
+                androidNote: "Direct internal storage access, USB OTG drive management, APK file side-loading.",
+                iosNote: "Cloud Files app integration (iCloud, Drive, Dropbox), tags, AirDrop sharing.",
+                androidHtml: `
+                    <div class="h-full flex flex-col space-y-2 text-[10px]">
+                        <div class="text-android font-bold">Storage / Internal / Downloads</div>
+                        <div class="space-y-1.5">
+                            <div class="bg-slate-900 p-2 rounded-xl flex justify-between items-center border border-slate-800"><span><i class="fa-solid fa-file-code text-android mr-2"></i>app-release.apk</span><span class="text-[8px] text-slate-500">Install</span></div>
+                            <div class="bg-slate-900 p-2 rounded-xl flex justify-between items-center border border-slate-800"><span><i class="fa-solid fa-file-pdf text-red-400 mr-2"></i>Document.pdf</span><span class="text-[8px] text-slate-500">2.4MB</span></div>
+                            <div class="bg-slate-900 p-2 rounded-xl flex justify-between items-center border border-slate-800"><span><i class="fa-solid fa-folder text-amber-400 mr-2"></i>DCIM / Camera</span><span class="text-[8px] text-slate-500">120 Items</span></div>
+                        </div>
+                    </div>
+                `,
+                iosHtml: `
+                    <div class="h-full flex flex-col space-y-2 text-[10px]">
+                        <div class="text-ios font-bold">iCloud Drive / Documents</div>
+                        <div class="space-y-1.5">
+                            <div class="bg-slate-900 p-2 rounded-xl flex justify-between items-center border border-slate-800"><span><i class="fa-solid fa-cloud text-ios mr-2"></i>Project Notes</span><span class="text-[8px] text-slate-500">Synced</span></div>
+                            <div class="bg-slate-900 p-2 rounded-xl flex justify-between items-center border border-slate-800"><span><i class="fa-solid fa-share-nodes text-emerald-400 mr-2"></i>AirDrop Folder</span><span class="text-[8px] text-slate-500">Shared</span></div>
+                        </div>
+                    </div>
+                `
+            },
+            store: {
+                androidNote: "Google Play Store + freedom to install third-party stores (Epic, F-Droid).",
+                iosNote: "Curated Apple App Store with strict security vetting & seamless Apple Pay.",
+                androidHtml: `
+                    <div class="h-full flex flex-col space-y-2 text-[10px]">
+                        <div class="text-android font-bold">Play Store / Open Sources</div>
+                        <div class="bg-slate-900 p-2 rounded-xl border border-slate-800 flex items-center space-x-2">
+                            <i class="fa-solid fa-download text-android text-base"></i>
+                            <div>
+                                <div class="font-bold text-white">App Side-loading Allowed</div>
+                                <div class="text-[8px] text-slate-400">Install from verified developers</div>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                iosHtml: `
+                    <div class="h-full flex flex-col space-y-2 text-[10px]">
+                        <div class="text-ios font-bold">App Store</div>
+                        <div class="bg-slate-900 p-2 rounded-xl border border-slate-800 flex items-center space-x-2">
+                            <i class="fa-solid fa-shield-check text-ios text-base"></i>
+                            <div>
+                                <div class="font-bold text-white">Privacy Nutrition Labels</div>
+                                <div class="text-[8px] text-slate-400">Strict app sandbox security</div>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+            ai: {
+                androidNote: "Multimodal Gemini integration, screen context understanding, live call screening.",
+                iosNote: "On-device Apple Intelligence, private cloud compute, contextual Siri actions.",
+                androidHtml: `
+                    <div class="h-full flex flex-col justify-between py-2 text-[10px]">
+                        <div class="text-android font-bold flex items-center space-x-1">
+                            <i class="fa-solid fa-sparkles"></i><span>Google Gemini AI 2026</span>
+                        </div>
+                        <div class="bg-slate-900/90 border border-android/40 p-2.5 rounded-xl text-left space-y-1">
+                            <div class="text-white font-bold">"Summarize this screen image"</div>
+                            <div class="text-[8px] text-slate-300 leading-normal">Analyzing image context... Extracting calendar invite and setting reminder automatically.</div>
+                        </div>
+                    </div>
+                `,
+                iosHtml: `
+                    <div class="h-full flex flex-col justify-between py-2 text-[10px]">
+                        <div class="text-ios font-bold flex items-center space-x-1">
+                            <i class="fa-solid fa-brain"></i><span>Apple Intelligence 2026</span>
+                        </div>
+                        <div class="bg-slate-900/90 border border-ios/40 p-2.5 rounded-xl text-left space-y-1">
+                            <div class="text-white font-bold">"Find the photo of mom's recipe"</div>
+                            <div class="text-[8px] text-slate-300 leading-normal">Private on-device semantic search executed without cloud logging.</div>
+                        </div>
+                    </div>
+                `
+            }
+        };
+
+        function switchApp(appName) {
+            // Update active switch button UI
+            document.querySelectorAll('.app-switch-btn').forEach(btn => {
+                if (btn.dataset.app === appName) {
+                    btn.classList.add('bg-slate-800', 'text-white', 'border-b-2', 'border-cyan-400');
+                    btn.classList.remove('bg-slate-900/80', 'text-slate-400');
+                } else {
+                    btn.classList.remove('bg-slate-800', 'text-white', 'border-b-2', 'border-cyan-400');
+                    btn.classList.add('bg-slate-900/80', 'text-slate-400');
+                }
+            });
+
+            // Render viewports
+            const sim = APP_SIMULATIONS[appName];
+            if (sim) {
+                document.getElementById('androidViewport').innerHTML = sim.androidHtml;
+                document.getElementById('iosViewport').innerHTML = sim.iosHtml;
+                document.getElementById('androidNoteText').innerText = sim.androidNote;
+                document.getElementById('iosNoteText').innerText = sim.iosNote;
+            }
+        }
+
+        /* ------------------------------------------------------------------
+           3. EVALUATION MATRIX GENERATOR (STEP 3)
+           ------------------------------------------------------------------ */
+        function renderRatingsMatrix() {
+            const container = document.getElementById('ratingsContainer');
+            container.innerHTML = '';
+
+            CATEGORIES.forEach((cat, idx) => {
+                const itemEl = document.createElement('div');
+                itemEl.className = 'pt-4 space-y-3';
+                
+                itemEl.innerHTML = `
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                        <!-- Category Info -->
+                        <div class="space-y-0.5">
+                            <div class="flex items-center space-x-2 text-white font-display font-bold text-sm">
+                                <i class="fa-solid ${cat.icon} text-cyan-400"></i>
+                                <span>${idx + 1}. ${cat.name}</span>
+                            </div>
+                            <p class="text-xs text-slate-400">${cat.desc}</p>
+                        </div>
+
+                        <!-- OS Choice Buttons -->
+                        <div class="flex items-center gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-800 text-xs self-start md:self-auto">
+                            <button onclick="setRating('${cat.id}', 'android')" id="rateBtn-${cat.id}-android" class="px-3 py-1.5 rounded-lg transition font-medium text-slate-400 hover:text-white">
+                                <i class="fa-brands fa-android mr-1"></i>Android
+                            </button>
+                            <button onclick="setRating('${cat.id}', 'equal')" id="rateBtn-${cat.id}-equal" class="px-3 py-1.5 rounded-lg transition font-medium text-slate-400 hover:text-white">
+                                Equal
+                            </button>
+                            <button onclick="setRating('${cat.id}', 'ios')" id="rateBtn-${cat.id}-ios" class="px-3 py-1.5 rounded-lg transition font-medium text-slate-400 hover:text-white">
+                                <i class="fa-brands fa-apple mr-1"></i>iPhone
+                            </button>
+                            <button onclick="setRating('${cat.id}', 'unsure')" id="rateBtn-${cat.id}-unsure" class="px-3 py-1.5 rounded-lg transition font-medium text-slate-400 hover:text-white">
+                                Unsure
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Priority Weight Slider -->
+                    <div class="flex items-center space-x-3 bg-slate-900/50 p-2.5 rounded-xl border border-slate-800/80">
+                        <span class="text-[11px] font-mono text-slate-400 min-w-[100px]">Importance:</span>
+                        <input type="range" min="1" max="5" value="${userState.weights[cat.id]}" oninput="setWeight('${cat.id}', this.value)" class="flex-1 cursor-pointer">
+                        <span id="weightVal-${cat.id}" class="text-xs font-mono font-bold text-cyan-400 w-12 text-right">High (3)</span>
+                    </div>
+                `;
+
+                container.appendChild(itemEl);
+                updateRatingButtonUI(cat.id);
+            });
+        }
+
+        function setRating(catId, choice) {
+            userState.ratings[catId] = choice;
+            updateRatingButtonUI(catId);
+        }
+
+        function updateRatingButtonUI(catId) {
+            const current = userState.ratings[catId];
+            const choices = ['android', 'equal', 'ios', 'unsure'];
+
+            choices.forEach(ch => {
+                const btn = document.getElementById(`rateBtn-${catId}-${ch}`);
+                if (!btn) return;
+
+                if (ch === current) {
+                    if (ch === 'android') {
+                        btn.className = 'px-3 py-1.5 rounded-lg font-bold text-slate-950 bg-android shadow';
+                    } else if (ch === 'ios') {
+                        btn.className = 'px-3 py-1.5 rounded-lg font-bold text-white bg-ios shadow';
+                    } else {
+                        btn.className = 'px-3 py-1.5 rounded-lg font-bold text-slate-950 bg-cyan-400 shadow';
+                    }
+                } else {
+                    btn.className = 'px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition';
+                }
+            });
+        }
+
+        function setWeight(catId, val) {
+            const num = parseInt(val, 10);
+            userState.weights[catId] = num;
+            
+            const labels = { 1: 'Low (1)', 2: 'Fair (2)', 3: 'Med (3)', 4: 'High (4)', 5: 'Vital (5)' };
+            const labelEl = document.getElementById(`weightVal-${catId}`);
+            if (labelEl) labelEl.innerText = labels[num];
+        }
+
+        /* ------------------------------------------------------------------
+           4. RESULTS CALCULATION & NEUTRAL MATCH ENGINE
+           ------------------------------------------------------------------ */
+        function calculateResults() {
+            let androidPoints = 0;
+            let iosPoints = 0;
+            let totalMaxPoints = 0;
+
+            CATEGORIES.forEach(cat => {
+                const r = userState.ratings[cat.id];
+                const w = userState.weights[cat.id];
+
+                totalMaxPoints += w;
+
+                if (r === 'android') {
+                    androidPoints += w;
+                } else if (r === 'ios') {
+                    iosPoints += w;
+                } else if (r === 'equal') {
+                    androidPoints += (w * 0.5);
+                    iosPoints += (w * 0.5);
+                } else if (r === 'unsure') {
+                    androidPoints += (w * 0.5);
+                    iosPoints += (w * 0.5);
+                }
+            });
+
+            const androidPct = Math.round((androidPoints / totalMaxPoints) * 100);
+            const iosPct = Math.round((iosPoints / totalMaxPoints) * 100);
+
+            // Animate Score Counter & Bars
+            document.getElementById('androidScorePercent').innerText = androidPct;
+            document.getElementById('iosScorePercent').innerText = iosPct;
+            document.getElementById('androidProgressBar').style.width = `${androidPct}%`;
+            document.getElementById('iosProgressBar').style.width = `${iosPct}%`;
+
+            // Qualitative Analysis Generation
+            generateNeutralAnalysis(androidPct, iosPct);
+
+            // Render Chart.js Radar
+            renderRadarChart();
+
+            // Navigate to step 4
+            goToStep(4);
+        }
+
+        function generateNeutralAnalysis(androidPct, iosPct) {
+            const textContainer = document.getElementById('neutralAnalysisText');
+            
+            const androidLeans = [];
+            const iosLeans = [];
+
+            CATEGORIES.forEach(cat => {
+                if (userState.ratings[cat.id] === 'android' && userState.weights[cat.id] >= 3) {
+                    androidLeans.push(cat.name);
+                }
+                if (userState.ratings[cat.id] === 'ios' && userState.weights[cat.id] >= 3) {
+                    iosLeans.push(cat.name);
+                }
+            });
+
+            let html = '';
+
+            if (Math.abs(androidPct - iosPct) <= 8) {
+                html += `<p class="p-3 rounded-xl bg-cyan-950/60 border border-cyan-500/40 text-cyan-200 font-medium">Your preferences are fairly balanced between both platform concepts.</p>`;
+            }
+
+            if (androidLeans.length > 0) {
+                html += `<p>Based on the preferences you entered, your selections leaned toward <strong>Android</strong> in these high-priority areas: <span class="text-android font-medium">${androidLeans.join(', ')}</span>.</p>`;
+            }
+
+            if (iosLeans.length > 0) {
+                html += `<p>Your selections leaned toward <strong>iPhone</strong> in these key areas: <span class="text-ios font-medium">${iosLeans.join(', ')}</span>.</p>`;
+            }
+
+            if (androidLeans.length === 0 && iosLeans.length === 0) {
+                html += `<p>Your selections indicate equal value placed across both operating system paradigms.</p>`;
+            }
+
+            textContainer.innerHTML = html;
+        }
+
+        function renderRadarChart() {
+            const ctx = document.getElementById('priorityRadarChart').getContext('2d');
+            
+            const labels = CATEGORIES.slice(0, 7).map(c => c.name.split(' ')[0]);
+            const weightsData = CATEGORIES.slice(0, 7).map(c => userState.weights[c.id]);
+
+            if (radarChartInstance) {
+                radarChartInstance.destroy();
+            }
+
+            radarChartInstance = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Priority Weight',
+                        data: weightsData,
+                        backgroundColor: 'rgba(6, 182, 212, 0.2)',
+                        borderColor: '#06B6D4',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#F3F4F6'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(255,255,255,0.1)' },
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            pointLabels: { color: '#94A3B8', font: { size: 10 } },
+                            ticks: { display: false, max: 5, min: 0 }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        /* ------------------------------------------------------------------
+           5. NAVIGATION CONTROL
+           ------------------------------------------------------------------ */
+        function goToStep(stepIndex) {
+            currentStep = stepIndex;
+
+            // Hide all sections
+            document.querySelectorAll('.step-section').forEach(sec => sec.classList.add('hidden'));
+
+            // Show current section
+            const target = document.getElementById(`stepSection-${stepIndex}`);
+            if (target) target.classList.remove('hidden');
+
+            // Update Nav Stepper UI
+            for (let i = 0; i <= 4; i++) {
+                const btn = document.getElementById(`stepBtn-${i}`);
+                if (!btn) continue;
+
+                if (i === stepIndex) {
+                    btn.className = 'step-nav-btn px-3 py-1.5 rounded-lg flex items-center space-x-2 bg-slate-800 text-white font-medium border border-cyan-500/50 transition';
+                } else {
+                    btn.className = 'step-nav-btn px-3 py-1.5 rounded-lg flex items-center space-x-2 text-slate-400 hover:text-white transition';
+                }
+            }
+
+            // Trigger Step-specific Initializers
+            if (stepIndex === 1) {
+                switchApp('lock');
+            } else if (stepIndex === 3) {
+                renderRatingsMatrix();
+            }
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Initialize on Load
+        window.addEventListener('DOMContentLoaded', () => {
+            goToStep(0);
+        });
+    </script>
+</body>
+</html>
