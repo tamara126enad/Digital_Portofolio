@@ -1587,6 +1587,19 @@ body{
 	    .hint{display:none;}
 	  }
 	</style>
+	<style id="portfolio-adjustments">
+	  .project-preview{
+	    width:100%;height:85px;display:block;
+	    border:0;border-radius:8px;overflow:hidden;
+	    background:#f8fafc;margin-bottom:8px;
+	    pointer-events:none;
+	  }
+	  .page-hidden{display:none!important;}
+	  .link-card:hover{border-color:#7f1d1d;}
+	  .link-card:hover .link-title{color:#7f1d1d;}
+	  .link-btn.primary:hover{background:linear-gradient(135deg,#7f1d1d,#991b1b);}
+	  .link-btn.ghost:hover{background:rgba(127,29,29,.14);border-color:#7f1d1d;color:#7f1d1d;}
+	</style>
 </head>
 
 <body>
@@ -1860,9 +1873,7 @@ body{
         <!-- PROJECT 01 -->
         <article class="exp-card" style="padding:12px;display:flex;flex-direction:column;">
           <a class="inter-card" href="assets/experiments/exp-05.html" target="_blank" rel="noopener">
-            <div style="width:100%;height:85px;border-radius:8px;background:linear-gradient(135deg,#dbeafe,#c7d2fe);display:flex;align-items:center;justify-content:center;color:var(--royal);font-size:26px;margin-bottom:8px;">
-              <i class="fa-solid fa-chart-line"></i>
-            </div>
+	            <iframe class="project-preview" src="assets/experiments/exp-05.html" title="Project 01 preview" loading="lazy"></iframe>
             <div class="exp-date">PROJECT 01</div>
             <div class="exp-title" style="font-size:14px;margin-top:4px;">اندرويد VS ايفون</div>
             <div class="exp-desc" style="font-size:11.5px;margin-top:6px;"></div>
@@ -1876,9 +1887,7 @@ body{
         <!-- PROJECT 02 -->
         <article class="exp-card" style="padding:12px;display:flex;flex-direction:column;">
           <a class="inter-card" href="assets/experiments/exp-06.html" target="_blank" rel="noopener">
-            <div style="width:100%;height:85px;border-radius:8px;background:linear-gradient(135deg,#fef3c7,#fde68a);display:flex;align-items:center;justify-content:center;color:var(--amber);font-size:26px;margin-bottom:8px;">
-              <i class="fa-solid fa-hotel"></i>
-            </div>
+	            <iframe class="project-preview" src="assets/experiments/exp-06.html" title="Project 02 preview" loading="lazy"></iframe>
             <div class="exp-date">PROJECT 02</div>
             <div class="exp-title" style="font-size:14px;margin-top:4px;">Retro_pinball_game</div>
             <div class="exp-desc" style="font-size:11.5px;margin-top:6px;">Retro_pinball_game from old</div>
@@ -1892,9 +1901,7 @@ body{
         <!-- PROJECT 03 -->
         <article class="exp-card" style="padding:12px;display:flex;flex-direction:column;">
           <a class="inter-card" href="assets/experiments/exp-07.html" target="_blank" rel="noopener">
-            <div style="width:100%;height:85px;border-radius:8px;background:linear-gradient(135deg,#d1fae5,#a7f3d0);display:flex;align-items:center;justify-content:center;color:var(--emerald);font-size:26px;margin-bottom:8px;">
-              <i class="fa-solid fa-graduation-cap"></i>
-            </div>
+	            <iframe class="project-preview" src="assets/experiments/exp-07.html" title="Project 03 preview" loading="lazy"></iframe>
             <div class="exp-date">PROJECT 03</div>
             <div class="exp-title" style="font-size:14px;margin-top:4px;">Virtual_music_studio</div>
             <div class="exp-desc" style="font-size:11.5px;margin-top:6px;">جرب جميع انواع الآلات الموسيقية وتعرف عليها</div>
@@ -1908,9 +1915,7 @@ body{
         <!-- PROJECT 04 -->
         <article class="exp-card" style="padding:12px;display:flex;flex-direction:column;">
           <a class="inter-card" href="assets/experiments/exp-09.html" target="_blank" rel="noopener">
-            <div style="width:100%;height:85px;border-radius:8px;background:linear-gradient(135deg,#ede9fe,#ddd6fe);display:flex;align-items:center;justify-content:center;color:var(--violet);font-size:26px;margin-bottom:8px;">
-              <i class="fa-solid fa-film"></i>
-            </div>
+	            <iframe class="project-preview" src="assets/experiments/exp-09.html" title="Project 04 preview" loading="lazy"></iframe>
             <div class="exp-date">PROJECT 04 · VIDEO</div>
             <div class="exp-title" style="font-size:14px;margin-top:4px;">Underwater_world_vr</div>
             <div class="exp-desc" style="font-size:11.5px;margin-top:6px;">تجربة العيش للحظات تحت البحر</div>
@@ -1981,11 +1986,11 @@ body{
       <!-- ============================================
            PAGE 6 — PROJECTS 3
       ============================================= -->
-      <section class="book-page" data-index="6">
+	      <section class="book-page page-hidden" data-index="6" aria-hidden="true">
         <div class="face front">
           <div class="page-content">
             <div class="page-title">حقيبة أعمالي</div>
-            <div class="page-subtitle">// selected digital projects · 09—12</div>
+	            <div class="page-subtitle">// selected digital projects · 09—12</div>
             <div class="section-line"></div>
             <div class="grid-2" style="height:calc(100% - 90px);">
               <article class="exp-card" style="padding:12px;display:flex;flex-direction:column;">
@@ -2613,14 +2618,14 @@ body{
       <button class="bm bm-edu" data-page="2"><i class="fa-solid fa-graduation-cap"></i>التعليم</button>
       <button class="bm bm-exp" data-page="3"><i class="fa-solid fa-briefcase"></i>الخبرات</button>
       <button class="bm bm-proj" data-page="4"><i class="fa-solid fa-folder-open"></i>أعمالي</button>
-      <button class="bm bm-inter" data-page="7"><i class="fa-solid fa-gamepad"></i>تفاعلية</button>
-      <button class="bm bm-ai" data-page="8"><i class="fa-solid fa-image"></i>صور AI</button>
-      <button class="bm bm-video" data-page="9"><i class="fa-solid fa-video"></i>فيديو</button>
-      <button class="bm bm-pdf" data-page="10"><i class="fa-solid fa-file-pdf"></i>PDF</button>
-      <button class="bm bm-audio" data-page="11"><i class="fa-solid fa-headphones"></i>MP3</button>
-      <button class="bm bm-links" data-page="12"><i class="fa-solid fa-link"></i>روابط</button>
-      <button class="bm bm-fb" data-page="13"><i class="fa-solid fa-comment-dots"></i>رأيك</button>
-      <button class="bm bm-qr" data-page="14"><i class="fa-solid fa-qrcode"></i>QR</button>
+	      <button class="bm bm-inter" data-page="6"><i class="fa-solid fa-gamepad"></i>تفاعلية</button>
+	      <button class="bm bm-ai" data-page="7"><i class="fa-solid fa-image"></i>صور AI</button>
+	      <button class="bm bm-video" data-page="8"><i class="fa-solid fa-video"></i>فيديو</button>
+	      <button class="bm bm-pdf" data-page="9"><i class="fa-solid fa-file-pdf"></i>PDF</button>
+	      <button class="bm bm-audio" data-page="10"><i class="fa-solid fa-headphones"></i>MP3</button>
+	      <button class="bm bm-links" data-page="11"><i class="fa-solid fa-link"></i>روابط</button>
+	      <button class="bm bm-fb" data-page="12"><i class="fa-solid fa-comment-dots"></i>رأيك</button>
+	      <button class="bm bm-qr" data-page="13"><i class="fa-solid fa-qrcode"></i>QR</button>
     </div>
 
     <!-- TURN BUTTONS -->
@@ -2791,7 +2796,7 @@ function playMorph(){
 /* =========================================================
    2. BOOK ENGINE
 ========================================================= */
-const pages = Array.from(document.querySelectorAll('.book-page'));
+	const pages = Array.from(document.querySelectorAll('.book-page:not(.page-hidden)'));
 const tabs = Array.from(document.querySelectorAll('.bm'));
 const counter = document.getElementById('counter');
 const nextBtn = document.getElementById('nextBtn');
@@ -2835,13 +2840,13 @@ function updateTabs(){
     const target = Number(t.dataset.page);
     t.classList.remove('active');
     if(target === current) t.classList.add('active');
-    if(target === 4 && current>=4 && current<=6) t.classList.add('active');
+	    if(target === 4 && current>=4 && current<=5) t.classList.add('active');
   });
 }
 
 function lazyLoadLinkPreviews(){
   // صفحة الروابط هي index 12
-  if(current === 12){
+	  if(current === 11){
     document.querySelectorAll('.link-preview iframe[data-src]').forEach(f=>{
       if(!f.src){
         f.src = f.dataset.src;
