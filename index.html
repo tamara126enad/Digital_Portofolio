@@ -1541,6 +1541,52 @@ body{
   .bookmarks{display:none}
 }
 </style>
+
+	<!-- Mobile compatibility layer: additive only; original styles remain unchanged. -->
+	<style id="mobile-compatibility">
+	  html{-webkit-text-size-adjust:100%;text-size-adjust:100%;}
+	  @media (max-width:640px){
+	    body{min-width:320px;overscroll-behavior:none;}
+	    .stage{
+	      padding:0 max(8px,env(safe-area-inset-left)) 0 max(8px,env(safe-area-inset-right));
+	      overflow:visible;
+	    }
+	    .scene{transform-origin:center center;}
+	    .turn-btn{width:56px;height:56px;}
+	    .counter{
+	      bottom:-42px;
+	      font-size:11px;
+	      letter-spacing:2px;
+	      padding:6px 14px;
+	      white-space:nowrap;
+	    }
+	    .hint{
+	      right:12px;
+	      bottom:max(10px,env(safe-area-inset-bottom));
+	      max-width:calc(100vw - 24px);
+	      font-size:9px;
+	      letter-spacing:.5px;
+	      text-align:right;
+	    }
+	    .lightbox{padding:16px;}
+	    .lightbox-close{
+	      top:max(12px,env(safe-area-inset-top));
+	      right:max(12px,env(safe-area-inset-right));
+	      width:44px;height:44px;
+	    }
+	    .lightbox img{max-width:96vw;max-height:80vh;}
+	    .fb-field input,.fb-field textarea,.link-btn,.audio-play{min-height:44px;}
+	  }
+	  @media (max-width:390px){
+	    .scene{transform:scale(.38)!important;}
+	    .turn-btn{width:52px;height:52px;}
+	    .counter{font-size:10px;padding:5px 11px;}
+	  }
+	  @media (orientation:landscape) and (max-height:520px){
+	    .scene{transform:scale(.52)!important;}
+	    .hint{display:none;}
+	  }
+	</style>
 </head>
 
 <body>
